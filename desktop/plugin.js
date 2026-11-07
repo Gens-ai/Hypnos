@@ -8,6 +8,14 @@ import { useCallback, useEffect, useState } from 'react'
 
 const DAYS = 120
 
+// A persistent sidebar row is an imposition for a plugin most people will
+// open occasionally, so it is opt-in. Desktop-local (ctx.storage), not a
+// backend goal: it is a UI preference, not part of the sleep record. The
+// route, ⌘K command and pane are always registered — only the row is
+// conditional, so nothing becomes unreachable when it is off.
+const NAV_KEY = 'sidebarNav'
+let _applyNav = () => {}
+
 // ---------------------------------------------------------------- helpers
 
 function fmtMinutes(m) {
@@ -517,6 +525,7 @@ const inputStyle = {
 
 function HypnosSettings({ ctx }) {
   const [g, setG] = useState(null)
+  const [navOn, setNavOn] = useState(() => ctx.storage.get(NAV_KEY, false))
   const [commits, setCommits] = useState([])
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
@@ -646,6 +655,27 @@ function HypnosSettings({ ctx }) {
         })
       }),
 
+      Row({
+        label: 'Show Hypnos in the sidebar',
+        hint:
+          'Off by default — a permanent row for something you open now and then is clutter. However this is set, the page stays reachable from ⌘K (“Open Hypnos”) and as a pane.',
+        children: jsxs('label', {
+          style: { display: 'flex', gap: '5px', alignItems: 'center', fontSize: '0.75rem' },
+          children: [
+            jsx('input', {
+              type: 'checkbox',
+              checked: navOn,
+              onChange: e => {
+                const on = e.target.checked
+                ctx.storage.set(NAV_KEY, on)
+                setNavOn(on)
+                _applyNav()
+              }
+            }),
+            'keep a sidebar link'
+          ]
+        })
+      }),
       Row({
         label: 'Ping me when I\'m not in Hermes',
         hint:
@@ -878,11 +908,6 @@ export default {
         render: () => jsx(HypnosPane, { ctx })
       },
       {
-        id: 'nav',
-        area: 'sidebar.nav',
-        data: { path: '/hypnos', label: 'Hypnos', codicon: 'pulse' }
-      },
-      {
         id: 'chip',
         area: 'statusBar.right',
         order: 128,
@@ -899,6 +924,21 @@ export default {
         }
       }
     ])
+
+    // Sidebar row: registered only while the user asks for it.
+    let disposeNav = () => {}
+    _applyNav = () => {
+      disposeNav()
+      disposeNav = ctx.storage.get(NAV_KEY, false)
+        ? ctx.register({
+            id: 'nav',
+            area: 'sidebar.nav',
+            data: { path: '/hypnos', label: 'Hypnos', codicon: 'pulse' }
+          })
+        : () => {}
+    }
+    _applyNav()
+    ctx.onDispose(() => disposeNav())
 
     ctx.registerSettingsPage({
       id: 'hypnos',

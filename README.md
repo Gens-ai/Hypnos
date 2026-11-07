@@ -317,6 +317,10 @@ histogram, a 21-night sleep track, an inline log box and the current verdict,
 plus a `☾` chip in the status bar, a ⌘K command, and a settings page. Off
 until you enable it in Capabilities → Plugins.
 
+Reach the page with ⌘K → **Open Hypnos**, or turn on a sidebar link in
+settings. That link is **off by default**: a permanent row for something you
+open now and then is clutter, and the page is reachable without it.
+
 It stays inside the plugin SDK surface: no prototype patching, no `eval`, no
 querying the app's own markup, no DOM observers. Everything arrives through
 this package's own backend namespace, and if the Python half is switched off
@@ -404,7 +408,10 @@ then puts it back.
   and `/guard` are writes. They import nothing but this package's own modules.
 - **Desktop half** imports only `@hermes/plugin-sdk`, `react` and
   `react/jsx-runtime`. It reads through `ctx.rest` and contributes a pane, a
-  route, a nav row, a status chip, a palette command and a settings page.
+  route, a status chip, a palette command, a settings page, and — only if you
+  switch it on — one sidebar row. The sidebar preference is the single thing
+  it stores locally, under its own `ctx.storage` namespace; everything else
+  lives in the plugin's own database.
 - **The `pre_llm_call` hook** injects the wind-down block as context between
   turns. Silent when no target is set, at tone `off`, when that rung already
   fired tonight, or when you've snoozed.
