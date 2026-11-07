@@ -1,0 +1,21 @@
+name: hypnos
+version: 0.1.0
+description: >-
+  Correlates your agent's own work patterns against your sleep. Hermes already
+  knows when you were up at 3am wrestling a build — Hypnos turns that into a
+  lifestyle sensor, logs your sleep beside it, reports only correlations the
+  sample can actually support, and can refuse destructive work in the small hours.
+author: Gens AI
+license: MIT
+homepage: https://github.com/Gens-ai/Hypnos
+requires_hermes: ">=0.21"
+provides_tools:
+  - sleep_log
+  - sleep_import
+  - hypnos_activity
+  - hypnos_report
+  - hypnos_guard
+provides_hooks:
+  - on_session_start
+  - post_tool_call
+  - pre_tool_call
