@@ -1,10 +1,12 @@
 # Hypnos
 
-**A sleep coach that happens to be your coding agent.**
+In the myth, Hypnos is the one who put Zeus to sleep. He did it twice, at
+Hera's request, and the second time Zeus wanted him drowned in the sea for
+it. He got away with it by hiding behind his mother, Night, whom Zeus was
+afraid of.
 
-Every sleep app is a bystander that asks what you did yesterday. Hermes was
-*in the room at 3am, helping you do it.* It isn't an observer — it's the
-accomplice. Which makes it the one honest candidate for this job.
+A minor god with a track record of switching off something much larger than
+himself, and the sense to have backup. That's the job here.
 
 ```
 > ☾ ████████░░ · bedtime 02:30 · 22 min out
@@ -16,146 +18,183 @@ accomplice. Which makes it the one honest candidate for this job.
 > · say "not tonight" to mute
 ```
 
-The bar fills with night as your bedtime approaches, so you read the runway
-at a glance. The poppy — Hypnos's own attribute — appears only on the last
-rung, so it stays meaningful by being rare.
+The bar fills with night as your bedtime gets closer, so you can read the
+runway without reading a sentence. The poppy, Hypnos's actual attribute in
+the iconography, only turns up on the last rung. It stays meaningful by being
+rare.
+
+## Your agent was there
+
+This is the part I think is actually new. Every other sleep app is a
+bystander that asks what you did yesterday. Hermes was in the room at 3am,
+handing you the commands, and it has timestamps on all of it.
+
+It isn't a witness. It's an accessory. Hypnos is what happens when the
+accessory starts taking notes.
+
+Here's real output from my machine, before I had logged a single night:
+
+```
+  00:00 ██████████████████ 53
+  02:00 ████████████ 35
+  03:00 █████████████████████████████████████ 109
+  04:00 ████████████████████████████████████████ 117
+  23:00 ██ 2
+```
+
+Nothing between 05:00 and 22:00. Not one message. No watch, no subscription
+and no correlation coefficient required to find that interesting.
 
 ## There is no correct bedtime
 
-**02:30 is as valid as 22:00.** Plenty of people who use Hermes have no boss
-and no clock-in; working till 3am and sleeping till noon is a way to live,
-not a defect to be corrected.
+I want to be blunt about this, because most things in this category get it
+wrong. **02:30 is as valid as 22:00.** Plenty of people running Hermes have no
+boss and no clock to punch, and working till three then sleeping till noon is
+a schedule, not a symptom.
 
 So Hypnos has no opinion about when you sleep. It measures you against the
-target *you* set, and until you set one it says nothing at all. Two further
-rules fall out of that:
+target you set, and until you set one it says nothing at all. Two things fall
+out of that, and both are load-bearing.
 
-- **It never assumes you're tired.** The hour on the clock is not evidence
-  about your body, and the copy never pretends otherwise.
-- **Stopping mid-problem is not a failure.** Handing something to tomorrow-you
-  is a real strategy — sleep does genuine consolidation work — and Hypnos is
-  allowed to say so.
+It never decides you're tired. The hour on the clock tells you nothing about
+anybody's body and the copy never pretends otherwise. You will not get a
+single "you must be exhausted" out of this plugin.
 
-## How present it is, is your call
+Stopping mid-problem is not a failure either. Sleep does real consolidation
+work, so handing something to tomorrow-you is a strategy rather than a
+surrender, and Hypnos is allowed to say so when it's past your mark and
+you're still chewing.
 
-Five tones, set in **Settings → Plugins → Hypnos**. Nothing gates a tool call
+## You pick how much it talks
+
+Five settings, in Settings → Plugins → Hypnos. Nothing touches a tool call
 below `firm`.
 
-| Tone | Behaviour |
+| Tone | What you get |
 |---|---|
-| `off` | Measures only. Never brings sleep up. |
-| `gentle` *(default)* | One note near bedtime, and only when you're at a clean stopping point. |
-| `encouraging` | Runway, bedtime, and once after. Always an offer. |
-| `firm` | The above, plus a confirmation step on destructive commands in quiet hours. |
-| `guardian` | The above, and destructive commands can be refused outright. Fully opt-in. |
+| `off` | Measurement only. Sleep never comes up. |
+| `gentle` (default) | One note near bedtime, and only if you're at a clean stopping point. |
+| `encouraging` | Runway, bedtime, and once after. Always phrased as an offer. |
+| `firm` | Same, plus a confirmation step on destructive commands in quiet hours. |
+| `guardian` | Same, and those commands can be refused outright. Entirely your call. |
 
-Nudges arrive between your turns — never mid-tool-chain — as a quoted block
-the agent speaks in its own voice, or as a desktop notification, or both.
-**One nudge per rung per night, then silence.** Say *"not tonight"* and it's
-muted without comment, no second attempt, no mention of it tomorrow.
+Nudges land between your turns, never in the middle of a tool chain, either
+as a quoted block the agent reads out or a desktop notification or both. One
+per rung per night, then it shuts up. Say "not tonight" and it's gone without
+a word of argument, no second attempt, nothing about it in the morning.
 
-## It knows whether you're at a clean break
+## It can tell whether you're at a clean break
 
-This is the part no sleep app can do. Hypnos can see whether you're actually
-at a natural stopping point — recent tool failures, uncommitted changes — so
-instead of nagging on a timer it adapts:
+A timer can't do this and neither can your watch. Hypnos looks at whether the
+work is actually at rest right now, from recent tool failures and uncommitted
+changes, then adapts instead of nagging.
 
-> *"That's your bedtime, and you're at a natural break. I've got the thread —
-> nothing's lost if you head to bed now."*
+If you're clear:
 
-> *"That's your bedtime. Land whatever you're mid-way through and I'll note
-> where we end up — it'll be waiting, with fresh eyes on it."*
+> *That's your bedtime, and you're at a natural break. I've got the thread —
+> nothing's lost if you head to bed now.*
 
-And because the real reason people don't stop is fear of losing the thread,
-it removes the reason: a bedtime handoff writes up what was in flight, where
-it stopped, and the next step. Stopping costs nothing.
+If you're mid-surgery:
 
-## Early starts, eased in
+> *That's your bedtime. Land whatever you're mid-way through and I'll note
+> where we end up — it'll be waiting, with fresh eyes on it.*
 
-Mention plans with a time and Hypnos works backwards from the wake time,
-easing the shift over the nights before, then releasing it. No arithmetic for
-you.
+Nobody stays up out of love for the bug. They stay up because stopping feels
+like losing the thread. So Hypnos writes the thread down: what was in flight,
+where it stopped, the obvious next move. Lethe runs through the cave in the
+myth, which is a terrible property in a note-taking system, so the file goes
+on disk.
 
-> *"Hiking trip Saturday, need to be up at 6:30."*
+## Early starts, worked backwards
+
+Tell it about plans with a time in them. It does the arithmetic, eases the
+shift across the nights before, and then lets go.
+
+> *Hiking trip Saturday, need to be up at 6:30.*
 
 ```
 2026-11-11  bedtime 01:20   easing in
 2026-11-12  bedtime 00:10   easing in
 2026-11-13  bedtime 23:00   the night that counts
-2026-11-14  bedtime 02:30   back to normal
+2026-11-14  bedtime 02:30   released, back to normal
 ```
 
-It can also drift your target gradually toward a different one — abrupt
-schedule changes don't hold, roughly 15 min a week does.
+It can also walk your usual target somewhere else over weeks. Yanking a sleep
+schedule two hours in one night doesn't hold. Fifteen minutes a week does.
 
-## One question each morning
+## One question in the morning
 
-A scheduled check-in asks *how did you sleep?* and nothing else. It runs on
-cron rather than at the start of your first session, because when you sit
-down with a goal in mind you don't want to be derailed.
+A scheduled job asks how you slept. That's the whole interaction.
 
-**It never opens with a missed target.** Patterns belong in the report, in
-aggregate, where they're information rather than a scolding.
+It runs on cron rather than waiting for your first session, because when you
+sit down with something specific in mind the last thing you want is a
+wellness interview. And it never opens with your miss. Not "you were up till
+four again." Patterns belong in the report, in aggregate, where they're
+information instead of a telling-off.
 
-## It refuses to lie to you
+## It would rather say nothing than lie
 
-Most quantified-self tooling will happily draw a confident trend line through
-nine data points.
+Most quantified-self software will cheerfully run a trend line through nine
+data points.
 
-- Fewer than **10 matched nights** → `INSUFFICIENT_EVIDENCE`, and **no
-  numbers at all**
-- Under **21 nights** → every figure labelled `PROVISIONAL`
-- Every correlation carries a **bootstrap 95% interval**; if it straddles
-  zero the verdict is `INCONCLUSIVE`, not a direction
-- Never a causal verb — "associated with", never "causes"
+- Under 10 matched nights you get `INSUFFICIENT_EVIDENCE` and no numbers at
+  all, not even hedged ones
+- Under 21 nights every figure is stamped `PROVISIONAL`
+- Every correlation carries a bootstrap 95% interval, and if that interval
+  contains zero the answer is `INCONCLUSIVE` rather than a direction
+- No causal verbs anywhere. "Associated with", never "causes"
 
-Verified against synthetic data: with a planted effect it finds it
-(r = −0.93, CI [−0.96, −0.87]) and calls all four noise features
+Tested against synthetic data with a known effect planted in it: finds the
+real one at r = −0.93, CI [−0.96, −0.87], and calls all four noise features
 inconclusive. No false positives.
 
-It also declines to dress up a tautology. "Worked late" against "slept less"
-is nearly circular — if you were working at 3am you weren't asleep at 3am —
-so the metrics that matter are the ones that aren't:
+It also won't dress a tautology up as a discovery. "Worked late" against
+"slept less" is nearly circular, because if you were working at 3am you
+weren't asleep at 3am. The numbers worth having are the ones that aren't:
 
-- **Consistency over earliness.** A steady 02:00 beats an erratic 23:00, so
-  bedtime *spread* is the better target.
-- **Open threads at stop**, recorded with no implied valence. If it turns out
-  to correlate with better sleep for you, Hypnos will say that.
+**Spread beats earliness.** A reliable 02:00 does more for you than a 23:00
+that swings by two hours, so the variance is the target rather than the mean.
+
+**Open threads at stop** are recorded with no moral attached. If it turns out
+you sleep better after walking away from an unsolved problem, Hypnos will
+report that cheerfully and I'll have learned something.
 
 ## Tools
 
 | Tool | What it does |
 |---|---|
-| `hypnos_goal` | Your bedtime, duration, gradual-shift goal, tone, check-in. |
-| `hypnos_commitment` | Early starts — worked backwards and eased in. |
+| `hypnos_goal` | Bedtime, duration, the slow-shift target, tone, check-in. |
+| `hypnos_commitment` | Early starts, worked backwards and eased in. |
 | `hypnos_winddown` | Nudge status, `snooze`, and the bedtime `handoff`. |
-| `hypnos_checkin` | The one-question morning check-in. |
-| `sleep_log` | Log a night. Fuzzy durations: `7h20m`, `6.5h`, `7:20`, `400m`. |
-| `sleep_import` | Bulk CSV — Gadgetbridge, Mi Fitness, Google Fit, Oura, hand-made. |
-| `hypnos_activity` | Your work pattern from Hermes's own history. |
-| `hypnos_report` | Correlate the two, honestly. `format="text"` for the chart. |
-| `hypnos_guard` | Quiet-hours guard for destructive work. Off by default. |
+| `hypnos_checkin` | The one morning question. |
+| `sleep_log` | Log a night. Takes `7h20m`, `6.5h`, `7:20`, `400m`. |
+| `sleep_import` | Bulk CSV. Gadgetbridge, Mi Fitness, Google Fit, Oura, handmade. |
+| `hypnos_activity` | Your work pattern, out of Hermes's own history. |
+| `hypnos_report` | The honest correlation. `format="text"` for the chart. |
+| `hypnos_guard` | Quiet-hours guard on destructive work. Off unless you say so. |
 
-## Any tracker, or none
+## Any tracker, or none at all
 
-Hypnos doesn't care what you wear. Sleep arrives through one small interface
-— `night, duration, wake_count?, quality?` — with three adapters: **manual**
-(`sleep_log`, zero hardware), **CSV** (any export with a date and a duration
-column), and **Apple Health / Gadgetbridge** via their existing exports.
+Hypnos does not care what's on your wrist. Sleep comes in through one small
+interface (`night, duration, wake_count?, quality?`) with three ways to fill
+it: type it at the agent, import a CSV from whatever your device exports, or
+point it at an Apple Health or Gadgetbridge dump. No account, no vendor API,
+no hardware.
 
-No account, no vendor API, no hardware requirement.
+I built this against a Mi Band 7 that I then failed to locate for two days,
+which is exactly why manual entry is a first-class path and not a fallback.
 
-## Desktop half
+## The desktop half
 
 One package, both SDKs. A right-hand pane and a `/hypnos` page with the live
-hour histogram, a 21-night sleep track, an inline log box and the current
-verdict; a `☾` status-bar chip; a ⌘K command; and a full settings page. Off
-by default — enable in **Capabilities → Plugins**.
+histogram, a 21-night sleep track, an inline log box and the current verdict,
+plus a `☾` chip in the status bar, a ⌘K command, and a settings page. Off
+until you enable it in Capabilities → Plugins.
 
-Strictly inside the plugin SDK surface: no prototype patching, no `eval`, no
-app-markup queries, no DOM observers. All data arrives through this package's
-own backend namespace, and the pane degrades to a message rather than
-crashing when the Python half is disabled.
+It stays inside the plugin SDK surface: no prototype patching, no `eval`, no
+querying the app's own markup, no DOM observers. Everything arrives through
+this package's own backend namespace, and if the Python half is switched off
+the pane says so instead of exploding.
 
 ## Install
 
@@ -166,43 +205,44 @@ hermes plugins install Gens-ai/Hypnos
 hermes plugins enable hypnos
 ```
 
-Then just talk. *"I want to be in bed by 2:30, aiming for 7 and a half
-hours"* → target set. *"Slept about five hours, woke up twice"* → logged.
-*"Flight at 7 on Saturday"* → the week's targets shift and release.
+Then talk to it like a person. *"I want to be in bed by 2:30, aiming for
+seven and a half hours"* sets the target. *"Slept about five hours, woke up
+twice"* logs the night. *"Flight at 7 on Saturday"* reshapes the week and
+then puts it back.
 
 ## Disclosure
 
-- **Reads** `state.db` (Hermes's own session store) **read-only**, with
-  `mode=ro`, inside the active profile's home. Message timestamps, roles and
-  tool names only — **never message content**. Degrades to empty if the file
-  is missing or unreadable.
-- **Writes** only to `<hermes home>/plugin-data/hypnos/` — a SQLite database
-  via the sanctioned `plugin_db()` helper, plus bedtime handoff notes you
-  asked it to write.
-- **Reads git status** in the session's working directory, when there is one,
-  purely to tell whether you're at a clean stopping point. Nothing is written
-  and no git history is read.
-- **No network calls.** No telemetry. No credentials read, stored or
-  requested. No self-updater.
+- **Reads** `state.db`, Hermes's own session store, read-only via `mode=ro`,
+  inside the active profile's home. Message timestamps, roles and tool names
+  only. **Never message content.** If the file is missing or unreadable it
+  degrades to empty rather than failing.
+- **Writes** only inside `<hermes home>/plugin-data/hypnos/`: a SQLite
+  database through the sanctioned `plugin_db()` helper, plus the handoff notes
+  you asked for.
+- **Reads git status** in the session's working directory when there is one,
+  purely to work out whether you're at a clean stopping point. Nothing is
+  written and no history is read.
+- **No network calls at all.** No telemetry, no credentials read or stored or
+  requested, no self-updater.
 - **Backend routes** (`dashboard/plugin_api.py`) mount at
-  `/api/plugins/hypnos/` and run in the gateway process: `GET /summary`,
-  `/goals`, `/winddown` (read-only) and `POST /sleep`, `/goals`,
-  `/commitments`, `/guard`. They import only this package's own modules.
-- **Desktop half** uses only `@hermes/plugin-sdk`, `react` and
-  `react/jsx-runtime`; it reads through `ctx.rest` and contributes a pane, a
-  route, a nav row, a status chip, a palette command and a settings page. No
-  prototype patching, no `eval`, no core-markup access.
+  `/api/plugins/hypnos/` and run in the gateway process. `GET /summary`,
+  `/goals` and `/winddown` are reads; `POST /sleep`, `/goals`, `/commitments`
+  and `/guard` are writes. They import nothing but this package's own modules.
+- **Desktop half** imports only `@hermes/plugin-sdk`, `react` and
+  `react/jsx-runtime`. It reads through `ctx.rest` and contributes a pane, a
+  route, a nav row, a status chip, a palette command and a settings page.
 - **The `pre_llm_call` hook** injects the wind-down block as context between
-  turns. It is silent when no target is set, at tone `off`, when the rung has
-  already fired tonight, or when snoozed.
-- **The guard** can escalate or veto tool calls, but only when you enable it,
-  only at tone `firm` or `guardian`, only for the listed tool names, only
-  inside your declared window, and only on destructive argument patterns. It
-  fails **open** — any internal error allows the call rather than wedging the
-  agent.
+  turns. Silent when no target is set, at tone `off`, when that rung already
+  fired tonight, or when you've snoozed.
+- **The guard** can escalate or veto a tool call, but only once you enable
+  it, only at tone `firm` or `guardian`, only for the tools listed above,
+  only inside the window you set, and only on destructive argument patterns.
+  It fails open: any internal error lets the call through rather than wedging
+  your agent.
 - **The morning check-in** is a Hermes cron job you create, delivered where
   you choose. Off by default.
-- Health correlations are observational, single-subject, and not medical
-  advice. Hypnos does not diagnose sleep disorders.
+- Correlations here are observational and single-subject. This is not medical
+  advice and Hypnos diagnoses nothing. If something clinical is going on, see
+  an actual doctor rather than a plugin named after a Greek god.
 
 MIT.
