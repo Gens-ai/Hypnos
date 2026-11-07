@@ -136,6 +136,56 @@ function SleepTrack({ rows }) {
   })
 }
 
+// ---------------------------------------------------------- error states
+
+// Never invent a cause. Show what actually failed, then the one fix that is
+// usually right, and let the user retry without a restart.
+function backendError(e) {
+  const detail =
+    (e && (e.message || e.error || e.detail)) || String(e || 'no detail given')
+  return (
+    'Could not reach the Hypnos backend.\n\n' +
+    detail +
+    '\n\nIts API routes are mounted when the gateway starts. If Hypnos was ' +
+    'installed or updated since then, restarting the gateway (⌘K → Restart ' +
+    'gateway) usually fixes it. If it persists, the Python half may be ' +
+    'disabled — check Capabilities → Plugins.'
+  )
+}
+
+function ErrorState({ message, onRetry }) {
+  return jsxs('div', {
+    style: {
+      padding: '16px',
+      fontSize: '0.75rem',
+      color: 'var(--ui-text-tertiary)',
+      lineHeight: 1.5,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      alignItems: 'flex-start'
+    },
+    children: [
+      jsx('div', { style: { whiteSpace: 'pre-wrap' }, children: message }),
+      onRetry
+        ? jsx('button', {
+            onClick: () => void onRetry(),
+            style: {
+              border: '1px solid var(--ui-stroke-secondary, currentColor)',
+              background: 'transparent',
+              color: 'var(--ui-text-secondary)',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              fontSize: '0.6875rem',
+              cursor: 'pointer'
+            },
+            children: 'Retry'
+          })
+        : null
+    ]
+  })
+}
+
 // ---------------------------------------------------------------- pane
 
 function HypnosPane({ ctx }) {
@@ -148,13 +198,13 @@ function HypnosPane({ ctx }) {
     try {
       const d = await ctx.rest(`/summary?days=${DAYS}`)
       if (d && d.ok === false) {
-        setErr(d.error || 'backend unavailable')
+        setErr(backendError(d))
       } else {
         setData(d)
         setErr(null)
       }
     } catch (e) {
-      setErr('Python half not enabled — see Capabilities → Plugins.')
+      setErr(backendError(e))
     }
   }, [ctx])
 
@@ -193,15 +243,7 @@ function HypnosPane({ ctx }) {
   }, [ctx, draft, load])
 
   if (err) {
-    return jsx('div', {
-      style: {
-        padding: '12px',
-        fontSize: '0.6875rem',
-        color: 'var(--ui-text-tertiary)',
-        lineHeight: 1.5
-      },
-      children: err
-    })
+    return jsx(ErrorState, { message: err, onRetry: load })
   }
   if (!data) {
     return jsx('div', {
@@ -485,12 +527,12 @@ function HypnosSettings({ ctx }) {
         ctx.rest('/goals'),
         ctx.rest('/commitments', { method: 'POST', body: { action: 'list' } })
       ])
-      if (gr && gr.success === false) { setErr(gr.error); return }
+      if (gr && gr.success === false) { setErr(backendError(gr)); return }
       setG(gr.goals)
       setCommits((cr && cr.commitments) || [])
       setErr(null)
     } catch (e) {
-      setErr('Hypnos backend unavailable. Enable the plugin in config.yaml.')
+      setErr(backendError(e))
     }
   }, [ctx])
 
@@ -516,10 +558,7 @@ function HypnosSettings({ ctx }) {
   )
 
   if (err) {
-    return jsx('div', {
-      style: { padding: '16px', fontSize: '0.75rem', color: 'var(--ui-text-tertiary)' },
-      children: err
-    })
+    return jsx(ErrorState, { message: err, onRetry: load })
   }
   if (!g) {
     return jsx('div', {
