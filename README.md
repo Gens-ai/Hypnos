@@ -263,17 +263,26 @@ hint: the most likely reason you're awake at 1am and not winding down is that
 you stopped working an hour ago and picked up your phone.
 
 So `hypnos_ping` exists for a scheduled job to call. It evaluates exactly the
-same gates — target set, tone, snooze, spacing, stage — and returns
-`say_nothing: true` when nothing is due. Cron refuses to deliver an empty
-payload, so silence costs nothing and you only hear from it when there's
-something to say.
+same gates — switched on, target set, tone, snooze, spacing, stage — and
+returns `say_nothing: true` when nothing is due. Cron refuses to deliver an
+empty payload, so silence costs nothing and you only hear from it when
+there's something to say.
 
 ```bash
-# every 20 minutes through the window around your bedtime
-hermes cron create "*/20 1-4 * * *" \
+# the window around a 04:00 bedtime, checked every 20 minutes
+hermes cron create "*/20 2-6 * * *" \
   "Call hypnos_ping. If say_nothing is true, output nothing at all. \
    Otherwise deliver the nudge text verbatim and stop." \
   --name "Hypnos evening ping" --deliver local --timezone America/Chicago
+```
+
+Checking often and speaking rarely is the point. On the author's machine that
+schedule is fifteen evaluations a night and, at `gentle`, exactly one that
+says anything:
+
+```
+02:00 .   02:20 .   02:40 .   03:00 .   03:20 SPEAK   03:40 .   04:00 .
+04:20 .   04:40 .   05:00 .   05:20 .   05:40 .   06:00 .   06:20 .  06:40 .
 ```
 
 Point `--deliver` at a messaging channel instead and it reaches your phone,
@@ -281,7 +290,8 @@ which is where you are if the laptop is shut.
 
 Both delivery paths share one `nudge_log`, so the spacing rule holds across
 them. You will not get a desktop notification and an in-chat nudge for the
-same moment.
+same moment. The ping has its own switch in settings, so you can silence it
+without going back to hunt down the cron job.
 
 **Out of session it will not pretend to know what you're doing.** The
 in-session copy can say "nothing failing and nothing half-finished" because

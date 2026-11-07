@@ -164,6 +164,7 @@ class GoalBody(BaseModel):
     nudge_gap_min: Optional[int] = None
     prefer_clean_break: Optional[bool] = None
     clean_break_patience_min: Optional[int] = None
+    ping_enabled: Optional[bool] = None
     checkin_enabled: Optional[bool] = None
     checkin_time: Optional[str] = None
     checkin_channel: Optional[str] = None
@@ -185,6 +186,7 @@ async def write_goals(body: GoalBody) -> dict[str, Any]:
                 "nudge_gap_min",
                 "prefer_clean_break",
                 "clean_break_patience_min",
+                "ping_enabled",
             )
             if k in payload
         }

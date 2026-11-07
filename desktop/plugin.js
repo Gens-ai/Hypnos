@@ -621,6 +621,22 @@ function HypnosSettings({ ctx }) {
       }),
 
       Row({
+        label: 'Ping me when I\'m not in Hermes',
+        hint:
+          'The in-chat nudge only reaches you mid-conversation. With a cron job calling hypnos_ping, a bedtime hint can also arrive while the laptop is shut — or on your phone, if you point cron at a messaging channel. This switch silences it without you having to delete the job.',
+        children: jsxs('label', {
+          style: { display: 'flex', gap: '5px', alignItems: 'center', fontSize: '0.75rem' },
+          children: [
+            jsx('input', {
+              type: 'checkbox',
+              checked: g.ping_enabled === 'true',
+              onChange: e => void save({ ping_enabled: e.target.checked })
+            }),
+            'allow scheduled pings'
+          ]
+        })
+      }),
+      Row({
         label: 'How often it may speak',
         hint:
           'Minimum minutes between any two nudges. Before your bedtime each stage is mentioned once and then dropped; past your bedtime it may come back on this interval. 0 removes the spacing.',

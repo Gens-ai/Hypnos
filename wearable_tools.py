@@ -187,6 +187,17 @@ def hypnos_ping(params: dict[str, Any]) -> str:
     dry = bool(params.get("dry_run"))
     now = _dt.datetime.now()
 
+    # The settings toggle must actually work, so a user can silence the
+    # scheduled ping without hunting down and deleting their cron job.
+    g0 = _goals.get_goals()
+    if str(g0.get("ping_enabled", "false")).lower() != "true" and not dry:
+        return _json.dumps({
+            "success": True,
+            "nudge": None,
+            "say_nothing": True,
+            "why": "Scheduled ping is switched off in Hypnos settings.",
+        }, indent=2)
+
     # Out of session there is no in-flight work to interrupt, so the
     # clean-break machinery has nothing to weigh; an empty history reads as
     # "at rest", which is the honest description of someone not working.
