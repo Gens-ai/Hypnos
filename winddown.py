@@ -49,6 +49,11 @@ CLEAN_ONLY = frozenset({"gentle"})
 # well past your own mark is the only thing worth mentioning again.
 REPEATABLE_RUNGS = frozenset({"past"})
 
+# ...and even that one tapers and then stops. Three mentions of the same
+# thing in one night is the ceiling; past that it is nagging, whatever the
+# gap is set to.
+MAX_REPEATS = 3
+
 _BAR_CELLS = 10
 
 
@@ -146,8 +151,13 @@ def render(
     target: dict[str, Any],
     state: dict[str, Any],
     now: _dt.datetime,
+    repeat: int = 0,
 ) -> str:
-    """Build the blockquote the agent will deliver."""
+    """Build the blockquote the agent will deliver.
+
+    ``repeat`` is how many times this rung has already fired tonight, so a
+    recurring nudge can taper instead of saying the same sentence twice.
+    """
     bedtime = target["bedtime"]
     # Fraction of the way from the 'runway' edge to the target.
     frac = 1.0 if delta_min >= 0 else 1.0 - (abs(delta_min) / 120.0)
@@ -165,17 +175,22 @@ def render(
         )
 
     header = f"\u263e {bar} \u00b7 {when}"
-    body = _body(rung, target, state)
+    body = _body(rung, target, state, repeat)
     footer = '\u00b7 say "not tonight" to mute'
 
     lines = []
-    if rung == "past":
+    # The poppy is Hypnos's own attribute and only earns its place by being
+    # rare: once a night, on the first time we're past the mark. A second
+    # one an hour later would make it wallpaper.
+    if rung == "past" and repeat == 0:
         lines.append(_POPPY)
     lines += [header, "", body, "", footer]
     return "\n".join("> " + ln if ln else ">" for ln in lines)
 
 
-def _body(rung: str, target: dict[str, Any], state: dict[str, Any]) -> str:
+def _body(
+    rung: str, target: dict[str, Any], state: dict[str, Any], repeat: int = 0
+) -> str:
     dur = target.get("duration_min") or 450
     hours = f"{dur // 60}h{dur % 60:02d}" if dur % 60 else f"{dur // 60}h"
     because = f" ({target['reason']})" if target.get("reason") else ""
@@ -224,6 +239,18 @@ def _body(rung: str, target: dict[str, Any], state: dict[str, Any]) -> str:
         )
 
     # past
+    if repeat:
+        # Already said once tonight. Get shorter, drop the reasoning, and
+        # signal that this is the end of it rather than the start of a habit.
+        if repeat >= MAX_REPEATS - 1:
+            return (
+                "Last mention tonight, then I'll leave you to it. Say the word "
+                "and I'll write up where we are."
+            )
+        return (
+            f"Still the {target['bedtime']} mark{because}. Want me to park "
+            "things so tomorrow starts clean?"
+        )
     if state.get("open_threads"):
         return (
             "Still something open here. Worth saying: handing a problem to "
@@ -295,8 +322,11 @@ def should_nudge(
     if last is not None and (now.timestamp() - last) < gap_min * 60:
         return None
 
-    # --- repetition: early rungs are said once, 'past' may recur
-    if _storage.nudge_count(night, rung) and rung not in REPEATABLE_RUNGS:
+    # --- repetition: early rungs are said once, 'past' may recur but tapers
+    fired = _storage.nudge_count(night, rung)
+    if fired and rung not in REPEATABLE_RUNGS:
+        return None
+    if fired >= MAX_REPEATS:
         return None
 
     # --- natural stopping point
@@ -329,6 +359,6 @@ def should_nudge(
         "target": target,
         "state": state,
         "waited_for_break_min": waited_min,
-        "repeat": _storage.nudge_count(night, rung),
-        "text": render(rung, delta, target, state, now),
+        "repeat": fired,
+        "text": render(rung, delta, target, state, now, repeat=fired),
     }

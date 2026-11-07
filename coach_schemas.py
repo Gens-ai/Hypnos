@@ -40,7 +40,7 @@ HYPNOS_GOAL = {
                 "type": "string",
                 "enum": ["off", "gentle", "encouraging", "firm", "guardian"],
                 "description": (
-                    "How present the wind-down nudges are. 'gentle' (default) "
+                    "How present the wind-down nudges are. 'encouraging' (default) "
                     "speaks once, near bedtime, only at a clean stopping point."
                 ),
             },

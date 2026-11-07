@@ -73,8 +73,8 @@ below `firm`.
 | Tone | What you get |
 |---|---|
 | `off` | Measurement only. Sleep never comes up. |
-| `gentle` (default) | One note near bedtime, and only if you're at a clean stopping point. |
-| `encouraging` | Runway, bedtime, and once after. Always phrased as an offer. |
+| `gentle` | One note near bedtime, and only if you're at a clean stopping point. |
+| `encouraging` *(default)* | Runway, bedtime, and once after. Always phrased as an offer. |
 | `firm` | Same, plus a confirmation step on destructive commands in quiet hours. |
 | `guardian` | Same, and those commands can be refused outright. Entirely your call. |
 

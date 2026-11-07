@@ -27,7 +27,7 @@ DEFAULTS: dict[str, str] = {
     "goal_bedtime": "",            # where they eventually want to land
     "ramp_min_per_week": "15",
     "ramp_started": "",
-    "tone": "gentle",
+    "tone": "encouraging",
     "nudge_delivery": "inject",    # inject | notify | both
     # Minimum minutes between any two nudges, whatever the rung.
     "nudge_gap_min": "45",
