@@ -550,27 +550,14 @@ function HypnosSettings({ ctx }) {
           paddingBottom: '18px'
         },
         children:
-          'There is no correct bedtime. 02:30 is as valid as 22:00 — Hypnos only ever measures you against the target you set here, and stays silent until you set one.'
+          'There is no correct bedtime — Hypnos measures you only against the one you set.'
       }),
-
-      noTarget
-        ? jsx('div', {
-            style: {
-              fontSize: '0.6875rem',
-              border: '1px solid var(--ui-border, currentColor)',
-              borderRadius: '4px',
-              padding: '8px 10px',
-              marginBottom: '16px',
-              color: 'var(--ui-text-secondary)'
-            },
-            children:
-              'No target set, so Hypnos is currently silent. It will keep measuring your work pattern either way.'
-          })
-        : null,
 
       Row({
         label: 'Bedtime you are aiming for',
-        hint: 'Yours, not anyone else’s. 24h, e.g. 02:30.',
+        hint: noTarget
+          ? 'Yours, not anyone else’s. 24h, e.g. 02:30. Blank means Hypnos stays quiet about bedtime and just keeps measuring.'
+          : 'Yours, not anyone else’s. 24h, e.g. 02:30.',
         children: jsx('input', {
           defaultValue: g.target_bedtime || '',
           placeholder: '02:30',
