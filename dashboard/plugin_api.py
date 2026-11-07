@@ -135,3 +135,83 @@ async def guard(body: GuardBody) -> dict[str, Any]:
         return _json.loads(tools.hypnos_guard(body.model_dump(exclude_none=True)))
     except Exception as exc:
         return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+# ------------------------------------------------------- coaching surface
+
+
+@router.get("/goals")
+async def read_goals() -> dict[str, Any]:
+    try:
+        ct = _mod("coach_tools")
+        import json as _json  # noqa: PLC0415
+
+        out = _json.loads(ct.hypnos_goal({"action": "get"}))
+        out["tones"] = list(_mod("goals").TONES)
+        return out
+    except Exception as exc:
+        return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+class GoalBody(BaseModel):
+    action: str = "set"
+    target_bedtime: Optional[str] = None
+    target_duration_min: Optional[int] = None
+    goal_bedtime: Optional[str] = None
+    ramp_min_per_week: Optional[int] = None
+    tone: Optional[str] = None
+    nudge_delivery: Optional[str] = None
+    checkin_enabled: Optional[bool] = None
+    checkin_time: Optional[str] = None
+    checkin_channel: Optional[str] = None
+
+
+@router.post("/goals")
+async def write_goals(body: GoalBody) -> dict[str, Any]:
+    try:
+        ct = _mod("coach_tools")
+        g = _mod("goals")
+        import json as _json  # noqa: PLC0415
+
+        payload = body.model_dump(exclude_none=True)
+        # nudge_delivery is settings-only, not exposed as an agent tool arg.
+        delivery = payload.pop("nudge_delivery", None)
+        out = _json.loads(ct.hypnos_goal(payload))
+        if delivery in ("inject", "notify", "both"):
+            g.set_goals(nudge_delivery=delivery)
+            out["goals"] = g.get_goals()
+        return out
+    except Exception as exc:
+        return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+class CommitBody(BaseModel):
+    action: str = "list"
+    on_date: Optional[str] = None
+    wake_by: Optional[str] = None
+    label: Optional[str] = None
+    prep_days: Optional[int] = None
+    id: Optional[int] = None
+
+
+@router.post("/commitments")
+async def commitments(body: CommitBody) -> dict[str, Any]:
+    try:
+        ct = _mod("coach_tools")
+        import json as _json  # noqa: PLC0415
+
+        return _json.loads(ct.hypnos_commitment(body.model_dump(exclude_none=True)))
+    except Exception as exc:
+        return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+@router.get("/winddown")
+async def winddown_status() -> dict[str, Any]:
+    """Lets the pane show the live rung and a preview of tonight's nudge."""
+    try:
+        ct = _mod("coach_tools")
+        import json as _json  # noqa: PLC0415
+
+        return _json.loads(ct.hypnos_winddown({"action": "status"}))
+    except Exception as exc:
+        return {"success": False, "error": f"{type(exc).__name__}: {exc}"}

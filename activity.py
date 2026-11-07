@@ -14,12 +14,14 @@ import os
 import sqlite3
 from typing import Any, Optional
 
-# Local hour at which "late" starts accruing.
-LATE_HOUR = 23
-
-# A night is attributed to the day you went to bed, so activity after
-# midnight belongs to the previous calendar day.
+# Hour at which a night rolls over to the previous day's label. 03:00
+# Tuesday is still Monday night. This is a *labelling* rule, not a
+# judgement about when anyone ought to be asleep.
 NIGHT_ROLLOVER_HOUR = 5
+
+# Fallback only, used when the user has set no target of their own. It is
+# NOT a recommendation — see minutes_past_target().
+_FALLBACK_LATE_HOUR = 23
 
 
 def _state_db_path() -> str:
@@ -50,17 +52,44 @@ def night_of(ts: float) -> str:
 
 
 def _late_minutes(timestamps: list[float]) -> int:
-    """Minutes of activity falling after LATE_HOUR, counting post-midnight."""
+    """Minutes of activity past the fallback hour, counting post-midnight.
+
+    Only used for historical backfill from state.db, where we cannot know
+    what the user's target was on a past night. Live measurement uses
+    minutes_past_target() against the real target.
+    """
     if not timestamps:
         return 0
     latest = max(timestamps)
     d = _dt.datetime.fromtimestamp(latest)
     if d.hour < NIGHT_ROLLOVER_HOUR:
-        # after midnight: minutes since 23:00 the previous evening
-        return (d.hour + 24 - LATE_HOUR) * 60 + d.minute
-    if d.hour >= LATE_HOUR:
-        return (d.hour - LATE_HOUR) * 60 + d.minute
+        # after midnight: minutes since the fallback hour the previous evening
+        return (d.hour + 24 - _FALLBACK_LATE_HOUR) * 60 + d.minute
+    if d.hour >= _FALLBACK_LATE_HOUR:
+        return (d.hour - _FALLBACK_LATE_HOUR) * 60 + d.minute
     return 0
+
+
+def minutes_past_target(now: Optional[_dt.datetime] = None) -> Optional[int]:
+    """Minutes past the user's OWN bedtime target, or None if they set none.
+
+    This is the honest version of "late". Without a target there is no such
+    thing as late, so this returns None and nothing is recorded.
+    """
+    now = now or _dt.datetime.now()
+    try:
+        from . import goals as _goals  # noqa: PLC0415
+
+        target = _goals.resolve_target(night_of(now.timestamp()))
+        if target.get("source") == "none" or not target.get("bedtime"):
+            return None
+        th, tm = (int(x) for x in str(target["bedtime"]).split(":"))
+    except Exception:
+        return None
+    now_min = now.hour * 60 + now.minute
+    tgt = th * 60 + tm
+    # Shortest signed arc on the 24h circle; positive means past the target.
+    return (now_min - tgt + 720) % 1440 - 720
 
 
 def _is_error(result: Any) -> bool:

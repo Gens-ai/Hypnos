@@ -51,6 +51,47 @@ CREATE TABLE IF NOT EXISTS guard_events (
     action     TEXT NOT NULL,      -- block | approve | allow
     reason     TEXT NOT NULL
 );
+
+-- The user's own targets. There is no normative "correct" bedtime here;
+-- 02:30 is as valid as 22:00. Only the user sets these.
+CREATE TABLE IF NOT EXISTS goals (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- Obligations that move a specific night's target: an early flight, a
+-- 7am standup, a race. The agent works backwards from the wake time.
+CREATE TABLE IF NOT EXISTS commitments (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    on_date    TEXT NOT NULL,      -- ISO date of the obligation
+    wake_by    TEXT NOT NULL,      -- 'HH:MM' the user must be up
+    label      TEXT,
+    prep_days  INTEGER NOT NULL DEFAULT 1,   -- nights to ease the shift over
+    created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS commitments_date ON commitments(on_date);
+
+-- One nudge per rung per night, enforced here.
+CREATE TABLE IF NOT EXISTS nudge_log (
+    night  TEXT NOT NULL,
+    rung   TEXT NOT NULL,
+    at     REAL NOT NULL,
+    PRIMARY KEY (night, rung)
+);
+
+-- 'not tonight' mute, honoured without comment.
+CREATE TABLE IF NOT EXISTS snooze (
+    night TEXT PRIMARY KEY,
+    at    REAL NOT NULL
+);
+
+-- Morning check-in answers.
+CREATE TABLE IF NOT EXISTS checkins (
+    night     TEXT PRIMARY KEY,
+    asked_at  REAL,
+    answered_at REAL,
+    answer    TEXT
+);
 """
 
 
@@ -246,3 +287,117 @@ def recent_guard_events(limit: int = 20) -> list[dict[str, Any]]:
         "SELECT * FROM guard_events ORDER BY id DESC LIMIT ?", (limit,)
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+# ------------------------------------------------- nudges, snooze, check-ins
+
+
+def nudge_already_fired(night: str, rung: str) -> bool:
+    con = connect()
+    row = con.execute(
+        "SELECT 1 FROM nudge_log WHERE night = ? AND rung = ?", (night, rung)
+    ).fetchone()
+    return row is not None
+
+
+def record_nudge(night: str, rung: str) -> None:
+    con = connect()
+    con.execute(
+        "INSERT OR IGNORE INTO nudge_log (night, rung, at) VALUES (?, ?, ?)",
+        (night, rung, _dt.datetime.now().timestamp()),
+    )
+    con.commit()
+
+
+def is_snoozed(night: str) -> bool:
+    con = connect()
+    row = con.execute("SELECT 1 FROM snooze WHERE night = ?", (night,)).fetchone()
+    return row is not None
+
+
+def snooze_night(night: str) -> None:
+    """'not tonight' — honoured without comment or follow-up."""
+    con = connect()
+    con.execute(
+        "INSERT OR REPLACE INTO snooze (night, at) VALUES (?, ?)",
+        (night, _dt.datetime.now().timestamp()),
+    )
+    con.commit()
+
+
+def record_checkin(night: str, *, asked: bool = False, answer: Optional[str] = None) -> None:
+    con = connect()
+    now = _dt.datetime.now().timestamp()
+    if asked:
+        con.execute(
+            "INSERT INTO checkins (night, asked_at) VALUES (?, ?) "
+            "ON CONFLICT(night) DO UPDATE SET asked_at = excluded.asked_at",
+            (night, now),
+        )
+    if answer is not None:
+        con.execute(
+            "INSERT INTO checkins (night, answered_at, answer) VALUES (?, ?, ?) "
+            "ON CONFLICT(night) DO UPDATE SET "
+            "answered_at = excluded.answered_at, answer = excluded.answer",
+            (night, now, answer),
+        )
+    con.commit()
+
+
+def last_checkin() -> Optional[dict[str, Any]]:
+    con = connect()
+    con.row_factory = sqlite3.Row
+    row = con.execute(
+        "SELECT * FROM checkins ORDER BY night DESC LIMIT 1"
+    ).fetchone()
+    return dict(row) if row else None
+
+
+# ------------------------------------------------- stop-state ring buffer
+
+# In-process only: the last few tool outcomes, used to tell whether the user
+# is at a natural break. Deliberately NOT persisted — it is transient
+# context for one decision, not a record of anyone's work.
+_OUTCOMES: list[dict[str, Any]] = []
+_OUTCOMES_MAX = 12
+
+
+def record_outcome(tool_name: str, error: bool) -> None:
+    _OUTCOMES.append(
+        {"tool": tool_name, "error": bool(error), "at": _dt.datetime.now().timestamp()}
+    )
+    del _OUTCOMES[:-_OUTCOMES_MAX]
+
+
+def recent_outcomes() -> list[dict[str, Any]]:
+    return list(_OUTCOMES)
+
+
+# ------------------------------------------------------------- handoff
+
+
+def write_handoff(night: str, summary: str) -> str:
+    """Save where the work got to, so stopping costs nothing."""
+    from plugins.plugin_storage import plugin_data_dir  # noqa: PLC0415
+
+    d = plugin_data_dir(PLUGIN_NAME) / "handoffs"
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{night}.md"
+    stamp = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    header = f"# Where we left off — {night}\n\nSaved {stamp}.\n\n"
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(header if not path.stat().st_size else f"\n---\n\nSaved {stamp}.\n\n")
+        fh.write(summary.rstrip() + "\n")
+    return str(path)
+
+
+def read_handoff(night: str) -> Optional[str]:
+    from plugins.plugin_storage import plugin_data_dir  # noqa: PLC0415
+
+    path = plugin_data_dir(PLUGIN_NAME) / "handoffs" / f"{night}.md"
+    if not path.exists():
+        return None
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return None

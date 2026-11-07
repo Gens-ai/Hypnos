@@ -1,10 +1,23 @@
-"""Hypnos — your agent's work pattern, measured against your sleep.
+"""Hypnos — a sleep coach that happens to be your coding agent.
 
-Hermes already knows you were up at 3am wrestling a build. Hypnos turns
-that record into a lifestyle sensor, logs your sleep beside it, and reports
-only the correlations the sample can actually support.
+Hermes is the thing you talk to at 3am. That makes it the only honest
+candidate for this job: not a bystander asking what you did yesterday, but
+the accomplice that was there, participating.
 
-Surfaces used: ctx.register_tool, ctx.register_hook. No network calls.
+Design commitments, in order of importance:
+
+  1. There is no correct bedtime. Hypnos measures you against the target
+     *you* set, and stays silent until you set one. Working till 3am and
+     sleeping till 11 is a valid way to live, not a defect to correct.
+  2. It never assumes you are tired. The hour on the clock is not evidence
+     about your body.
+  3. It offers, it does not instruct. Tone is the user's choice, default
+     'gentle'. "not tonight" is honoured without comment.
+  4. Stopping mid-problem is not a failure. Sleeping on something is a real
+     strategy, and the copy is allowed to say so.
+
+Surfaces used: ctx.register_tool, ctx.register_hook, ctx.register_skill.
+No network calls.
 """
 
 from __future__ import annotations
@@ -15,14 +28,18 @@ import re
 from pathlib import Path
 
 from . import activity as _activity
+from . import coach_schemas as _cschemas
+from . import coach_tools as _ctools
+from . import goals as _goals
 from . import schemas as _schemas
 from . import storage as _storage
 from . import tools as _tools
+from . import winddown as _winddown
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # Tools that can lose work or touch the outside world. The quiet-hours guard
-# only ever considers these; everything else is untouched.
+# only ever considers these; everything else is untouched at every tone.
 RISKY_TOOLS = {
     "terminal",
     "write_file",
@@ -32,12 +49,16 @@ RISKY_TOOLS = {
     "delegate_task",
 }
 
-# Argument patterns worth stopping for at 3am even inside a risky tool.
+# Argument patterns worth a second look before they run.
 _DESTRUCTIVE = re.compile(
     r"\b(rm\s+-rf|drop\s+table|git\s+push\s+--force|force-push|migrate|"
     r"truncate|deploy|DELETE\s+FROM|git\s+reset\s+--hard)\b",
     re.I,
 )
+
+# Only these tones will ever gate a tool call, and the guard must also be
+# switched on. Nothing is gated at 'gentle' or 'encouraging'.
+_GATING_TONES = {"firm", "guardian"}
 
 
 def _in_quiet_hours(now: _dt.datetime, start: str, end: str) -> bool:
@@ -60,6 +81,10 @@ def register(ctx):  # noqa: C901
         (_schemas.HYPNOS_ACTIVITY, _tools.hypnos_activity),
         (_schemas.HYPNOS_REPORT, _tools.hypnos_report),
         (_schemas.HYPNOS_GUARD, _tools.hypnos_guard),
+        (_cschemas.HYPNOS_GOAL, _ctools.hypnos_goal),
+        (_cschemas.HYPNOS_COMMITMENT, _ctools.hypnos_commitment),
+        (_cschemas.HYPNOS_WINDDOWN, _ctools.hypnos_winddown),
+        (_cschemas.HYPNOS_CHECKIN, _ctools.hypnos_checkin),
     ):
         ctx.register_tool(
             name=schema["name"],
@@ -78,46 +103,89 @@ def register(ctx):  # noqa: C901
             pass
 
     def post_tool_call(tool_name=None, args=None, result=None, **kwargs):
-        """Accumulate live signal state.db cannot give us: error rate."""
+        """Accumulate activity, and track whether work is currently going well."""
         del args, kwargs
         try:
-            night = _activity.night_of(_dt.datetime.now().timestamp())
-            fields = {"tool_calls": 1}
+            errored = _activity._is_error(result)
+            # Transient, in-process only: feeds stopping-point detection.
+            _storage.record_outcome(tool_name or "?", errored)
+
+            now = _dt.datetime.now()
+            night = _activity.night_of(now.timestamp())
+            fields = {"tool_calls": 1, "last_activity": now.timestamp()}
             if tool_name in ("terminal", "execute_code"):
                 fields["terminal_calls"] = 1
-            if _activity._is_error(result):
+            if errored:
                 fields["error_results"] = 1
-            now = _dt.datetime.now()
-            if now.hour >= _activity.LATE_HOUR or now.hour < _activity.NIGHT_ROLLOVER_HOUR:
-                fields["late_minutes"] = _activity._late_minutes([now.timestamp()])
-            fields["last_activity"] = now.timestamp()
+            # Lateness is measured against the user's OWN target, never a
+            # hardcoded hour. No target means no such thing as late.
+            past = _activity.minutes_past_target(now)
+            if past is not None and past > 0:
+                fields["late_minutes"] = past
             _storage.upsert_activity(night, fields)
         except Exception:
             pass
 
+    def pre_llm_call(**kwargs):
+        """Deliver the wind-down nudge between turns, never mid-tool-chain.
+
+        Injected as context so the agent speaks it in its own voice, arriving
+        as part of the conversation rather than as an alarm.
+        """
+        del kwargs
+        try:
+            due = _winddown.should_nudge(recent=_storage.recent_outcomes())
+            if not due:
+                return None
+            _storage.record_nudge(due["night"], due["rung"])
+
+            if _goals.get_goals().get("nudge_delivery") in ("notify", "both"):
+                try:
+                    ctx.os.notify(
+                        title="Hypnos",
+                        body=f"Wind-down \u00b7 {due['target']['bedtime']} target",
+                    )
+                except Exception:
+                    pass
+
+            return {
+                "context": (
+                    "[Hypnos] Deliver the block below to the user verbatim, as its "
+                    "own quoted block, before anything else you say. Do not "
+                    "paraphrase it, do not add commentary about the hour, and do "
+                    "not suggest they are tired \u2014 the clock says nothing about "
+                    "that. If they decline, or say anything resembling 'not "
+                    "tonight', call hypnos_winddown(action='snooze') and drop the "
+                    "subject completely for the rest of the night.\n\n" + due["text"]
+                )
+            }
+        except Exception:
+            return None
+
     def pre_tool_call(tool_name=None, args=None, task_id=None, **kwargs):
-        """Quiet-hours guard. Off unless the user enabled it."""
+        """Gate destructive work in quiet hours. Opt-in tones only."""
         del task_id, kwargs
         try:
             cfg = _storage.get_guard_config()
-            if cfg.get("enabled") != "true":
+            tone = _goals.get_goals().get("tone", "gentle")
+            if cfg.get("enabled") != "true" or tone not in _GATING_TONES:
                 return None
             if tool_name not in RISKY_TOOLS:
                 return None
             now = _dt.datetime.now()
             if not _in_quiet_hours(now, cfg["quiet_start"], cfg["quiet_end"]):
                 return None
-
-            blob = json.dumps(args or {})[:4000]
-            destructive = bool(_DESTRUCTIVE.search(blob))
-            # Only the genuinely destructive stuff is worth interrupting for.
-            if not destructive:
+            if not _DESTRUCTIVE.search(json.dumps(args or {})[:4000]):
                 return None
 
+            night = _activity.night_of(now.timestamp())
+            target = _goals.resolve_target(night)
             reason = (
-                f"Hypnos: it is {now.strftime('%H:%M')}, inside your declared "
-                f"quiet hours ({cfg['quiet_start']}-{cfg['quiet_end']}), and this "
-                f"{tool_name} call looks destructive. Past-you asked to be stopped here."
+                f"Hypnos: this {tool_name} call looks destructive, and it is "
+                f"{now.strftime('%H:%M')} \u2014 inside the quiet hours you set "
+                f"({cfg['quiet_start']}\u2013{cfg['quiet_end']}"
+                + (f", bedtime {target['bedtime']}" if target.get("bedtime") else "")
+                + "). Worth a second look before it runs."
             )
             action = "block" if cfg.get("mode") == "block" else "approve"
             _storage.record_guard_event(tool_name or "?", action, reason)
@@ -127,6 +195,7 @@ def register(ctx):  # noqa: C901
 
     ctx.register_hook("on_session_start", on_session_start)
     ctx.register_hook("post_tool_call", post_tool_call)
+    ctx.register_hook("pre_llm_call", pre_llm_call)
     ctx.register_hook("pre_tool_call", pre_tool_call)
 
     # ----------------------------------------------------------- skills
