@@ -186,6 +186,8 @@ report that cheerfully and I'll have learned something.
 | `hypnos_activity` | Your work pattern, out of Hermes's own history. |
 | `hypnos_report` | The honest correlation. `format="text"` for the chart. |
 | `hypnos_guard` | Quiet-hours guard on destructive work. Off unless you say so. |
+| `hypnos_wearable` | Read sleep from a health MCP server you already run. |
+| `hypnos_ping` | For a cron job: is a nudge due right now, out of session? |
 
 ## Any tracker, or none at all
 
@@ -197,6 +199,106 @@ no hardware.
 
 I built this against a Mi Band 7 that I then failed to locate for two days,
 which is exactly why manual entry is a first-class path and not a fallback.
+
+## Connecting a watch
+
+Hypnos writes no vendor integrations and holds no credentials. Instead it
+reads from a health MCP server you already run, through `ctx.call_mcp`, which
+Hermes gates behind an allowlist you control. Three steps.
+
+**1. Install whichever health plugin matches your device.**
+
+| If you have | Install | Cost |
+|---|---|---|
+| Garmin, Oura, WHOOP, Hevy, Intervals.icu | `athletedata` | paid, trial available |
+| An iPhone or Apple Watch | `apple-health-mcp` | free, reads a local export |
+| An iPhone and a server you host | `healthrelay` | free |
+| Something already in a local health store | `health-data` | free |
+| A Mi Band, Amazfit or anything Gadgetbridge supports | export the SQLite file and use `sleep_import` | free |
+| None of the above | `sleep_log`, by typing | free |
+
+**2. Grant it to Hypnos.** Nothing happens without this, by design:
+
+```yaml
+# ~/.hermes/config.yaml
+plugins:
+  entries:
+    hypnos:
+      mcp_allowlist: ["athletedata"]
+```
+
+**3. Point Hypnos at it and check before trusting it.**
+
+```
+"connect my wearable"            -> hypnos_wearable action=presets
+"use athletedata for sleep"      -> hypnos_wearable action=configure
+"check it can read my sleep"     -> hypnos_wearable action=probe
+```
+
+`probe` writes nothing. It calls the server, shows you the nights it managed
+to parse and a preview of the raw response, and tells you if it got nothing.
+That last part matters: these servers each return a different shape, so if
+the tool name or arguments are wrong you want to find out before any of it
+lands in your history. Once the numbers look right, `sync` imports them.
+
+**Your own entries always win.** A watch is guessing at how long you slept;
+you know whether you lay there for an hour. Anything you logged by hand is
+never overwritten by a sync. Where the device disagrees, the sync reports it
+and leaves the decision to you:
+
+```
+skipped_you_logged_these: 1
+conflicts: [{night: 2026-11-03, you_logged_min: 300, device_says_min: 330}]
+```
+
+Imported nights are tagged `mcp:<server>` so the source of every number stays
+visible, and implausible rows (under 30 minutes, over 18 hours) are dropped
+rather than averaged in.
+
+## Being useful when you've shut the laptop
+
+The in-session nudge rides `pre_llm_call`, which only reaches you while
+you're actually talking to Hermes. That is the wrong assumption for a bedtime
+hint: the most likely reason you're awake at 1am and not winding down is that
+you stopped working an hour ago and picked up your phone.
+
+So `hypnos_ping` exists for a scheduled job to call. It evaluates exactly the
+same gates — target set, tone, snooze, spacing, stage — and returns
+`say_nothing: true` when nothing is due. Cron refuses to deliver an empty
+payload, so silence costs nothing and you only hear from it when there's
+something to say.
+
+```bash
+# every 20 minutes through the window around your bedtime
+hermes cron create "*/20 1-4 * * *" \
+  "Call hypnos_ping. If say_nothing is true, output nothing at all. \
+   Otherwise deliver the nudge text verbatim and stop." \
+  --name "Hypnos evening ping" --deliver local --timezone America/Chicago
+```
+
+Point `--deliver` at a messaging channel instead and it reaches your phone,
+which is where you are if the laptop is shut.
+
+Both delivery paths share one `nudge_log`, so the spacing rule holds across
+them. You will not get a desktop notification and an in-chat nudge for the
+same moment.
+
+**Out of session it will not pretend to know what you're doing.** The
+in-session copy can say "nothing failing and nothing half-finished" because
+it checked. The scheduled ping has nothing to check, and says so:
+
+> *You'd set 02:30 as the mark. No pressure and no idea what you're up to —
+> but if you're winding down anyway, this is me saying goodnight.*
+
+A second job can pull last night off your watch each morning, so the
+check-in has the number before it asks you anything:
+
+```bash
+hermes cron create "30 13 * * *" \
+  "Call hypnos_wearable action=sync, then hypnos_checkin action=ask." \
+  --name "Hypnos morning check-in" --deliver local \
+  --timezone America/Chicago --skill hypnos:hypnos-coaching
+```
 
 ## The desktop half
 
@@ -212,27 +314,9 @@ the pane says so instead of exploding.
 
 ## Pipeline
 
-The thing Hypnos wants next is more context about the body attached to the
-keyboard. That does not mean writing a vendor integration for every watch on
-the market, and it very deliberately does not mean Hypnos holding anybody's
-OAuth tokens.
-
-**One adapter, every device.** Hermes plugins can call a configured MCP server
-through `ctx.call_mcp`, gated by a per-plugin, per-server allowlist the user
-sets themselves. Several health MCP servers already exist in the Hermes
-catalog. So the next real feature is a generic reader that pulls last night's
-sleep from whichever of them you already run, under your own allowlist, with
-no vendor code and no credentials inside Hypnos:
-
-| Already in the catalog | Covers |
-|---|---|
-| `athletedata` | Garmin, Oura, WHOOP, Hevy, Intervals.icu and ~35 more, hosted, paid |
-| `apple-health-mcp` | Apple Health export on disk: sleep, HRV, heart rate |
-| `healthrelay` | Apple Health through a receiver you host yourself |
-| `health-data`, `health-insights`, `healthcare` | local health stores with their own query tools |
-
-Grant one of those in `mcp_allowlist` and sleep arrives on its own. That is
-the whole integration.
+More context about the body attached to the keyboard, without writing a
+vendor integration for every watch on the market. The MCP reader above is the
+shipped half of this; what follows is not built yet.
 
 **Direct, where it's genuinely easy.** Oura and WHOOP both publish documented
 REST APIs with sleep collections, so a thin reader for either is a small job.
@@ -294,8 +378,16 @@ then puts it back.
 - **Reads git status** in the session's working directory when there is one,
   purely to work out whether you're at a clean stopping point. Nothing is
   written and no history is read.
-- **No network calls at all.** No telemetry, no credentials read or stored or
-  requested, no self-updater.
+- **No network calls of its own.** No telemetry, no credentials read, stored
+  or requested, no self-updater. The one outbound path is `ctx.call_mcp` to a
+  health MCP server, which does nothing until the operator names that server
+  in `plugins.entries.hypnos.mcp_allowlist`. Hypnos never sees that server's
+  credentials, and a server it has not been granted raises `PermissionError`
+  with the exact config key to set. Imported rows are tagged `mcp:<server>`;
+  anything you logged yourself is never overwritten.
+- **`hypnos_ping`** reads the clock and the gates and returns text. It sends
+  nothing itself — delivery is whatever cron job you chose to create, under
+  your own schedule and channel.
 - **Backend routes** (`dashboard/plugin_api.py`) mount at
   `/api/plugins/hypnos/` and run in the gateway process. `GET /summary`,
   `/goals` and `/winddown` are reads; `POST /sleep`, `/goals`, `/commitments`

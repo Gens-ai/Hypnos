@@ -1,5 +1,5 @@
 name: hypnos
-version: 0.2.0
+version: 0.3.0
 description: >-
   Correlates your agent's own work patterns against your sleep. Hermes already
   knows when you were up at 3am wrestling a build, which makes it the one
@@ -22,6 +22,8 @@ provides_tools:
   - hypnos_commitment
   - hypnos_winddown
   - hypnos_checkin
+  - hypnos_wearable
+  - hypnos_ping
 provides_hooks:
   - on_session_start
   - post_tool_call

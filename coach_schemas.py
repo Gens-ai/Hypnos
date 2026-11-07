@@ -141,3 +141,62 @@ HYPNOS_CHECKIN = {
         },
     },
 }
+
+
+HYPNOS_WEARABLE = {
+    "name": "hypnos_wearable",
+    "description": (
+        "Read sleep from a health MCP server the user already runs (Oura, "
+        "WHOOP, Garmin, Apple Health and so on) instead of typing nights in "
+        "by hand. Hypnos writes no vendor integrations: it calls a server the "
+        "operator has granted in plugins.entries.hypnos.mcp_allowlist. Use "
+        "action='presets' to see known servers, 'configure' to point Hypnos "
+        "at one, 'probe' to check it parses before writing anything, and "
+        "'sync' to import. Manual entries are never overwritten."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": ["presets", "configure", "probe", "sync", "status", "disable"],
+                "description": "Default 'status'. Always probe before the first sync.",
+            },
+            "server": {
+                "type": "string",
+                "description": "MCP server name as configured in mcp.servers.",
+            },
+            "tool": {
+                "type": "string",
+                "description": "Tool on that server to call. Defaults to the preset.",
+            },
+            "args": {
+                "type": "object",
+                "description": "Arguments for that tool. Defaults to the preset.",
+            },
+        },
+        "required": [],
+    },
+}
+
+HYPNOS_PING = {
+    "name": "hypnos_ping",
+    "description": (
+        "Check whether a wind-down nudge is due right now, for delivery "
+        "outside a conversation. Intended for a cron job: the in-session hook "
+        "only reaches the user mid-chat, which is no help once they have shut "
+        "the laptop. Returns say_nothing=true when nothing is due, and in "
+        "that case the caller must output nothing at all. Honours every "
+        "normal gate: target set, tone, snooze, spacing and stage."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "dry_run": {
+                "type": "boolean",
+                "description": "Evaluate without recording the nudge as delivered.",
+            },
+        },
+        "required": [],
+    },
+}

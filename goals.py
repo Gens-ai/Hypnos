@@ -38,6 +38,16 @@ DEFAULTS: dict[str, str] = {
     "checkin_enabled": "false",
     "checkin_time": "10:00",
     "checkin_channel": "desktop",  # desktop | <messaging target>
+    # --- wearable sleep source, read through ctx.call_mcp
+    "wearable_enabled": "false",
+    "wearable_server": "",
+    "wearable_tool": "",
+    "wearable_args": "{}",
+    "wearable_last_sync": "",
+    # --- out-of-session evening ping (a cron job calls hypnos_ping)
+    "ping_enabled": "false",
+    "ping_every_min": "30",
+    "ping_channel": "desktop",
     "track_open_threads": "true",
 }
 

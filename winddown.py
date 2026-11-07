@@ -95,6 +95,10 @@ def stop_state(recent: list[dict[str, Any]], cwd: Optional[str] = None) -> dict[
 
     Deliberately valence-free: `open_threads` is a fact, not a judgement.
     Sleeping on an unsolved problem is a legitimate strategy.
+
+    ``observed`` distinguishes "I looked and the work is at rest" from "I have
+    nothing to look at". A scheduled ping fired while you are away from Hermes
+    gets the latter, and must not claim your work is tidy when it has no idea.
     """
     errors = sum(1 for r in recent[-6:] if r.get("error"))
     last_error = bool(recent and recent[-1].get("error"))
@@ -104,6 +108,7 @@ def stop_state(recent: list[dict[str, Any]], cwd: Optional[str] = None) -> dict[
     clean = (not last_error) and errors == 0 and dirty is not True
     return {
         "clean": clean,
+        "observed": bool(recent) or dirty is not None,
         "recent_errors": errors,
         "last_call_errored": last_error,
         "uncommitted": dirty,
@@ -182,6 +187,14 @@ def _body(rung: str, target: dict[str, Any], state: dict[str, Any]) -> str:
         )
 
     if rung == "approach":
+        if not state.get("observed"):
+            # Scheduled ping: Hypnos cannot see the work, so it says nothing
+            # about the work. Only the clock and the goal, which it does know.
+            return (
+                f"Bedtime's {target['bedtime']}{because}, and you're coming up "
+                f"on it if you want the full {hours}. "
+                "No idea what you're in the middle of \u2014 just marking the time."
+            )
         if state.get("clean"):
             return (
                 "Good spot \u2014 nothing failing and nothing half-finished. If you "
@@ -194,6 +207,12 @@ def _body(rung: str, target: dict[str, Any], state: dict[str, Any]) -> str:
         )
 
     if rung == "target":
+        if not state.get("observed"):
+            return (
+                f"That's the {target['bedtime']} you set{because}. Wherever "
+                f"you've got to, {hours} from now still works if you turn in "
+                "soon. Want me to save the thread first?"
+            )
         if state.get("clean"):
             return (
                 "That's your bedtime, and you're at a natural break. I've got the "
@@ -210,6 +229,12 @@ def _body(rung: str, target: dict[str, Any], state: dict[str, Any]) -> str:
             "Still something open here. Worth saying: handing a problem to "
             "tomorrow-you is a real strategy, not giving up \u2014 sleep genuinely "
             "does some of the work. Want me to park it and write up the state?"
+        )
+    if not state.get("observed"):
+        return (
+            f"You'd set {target['bedtime']} as the mark{because}. No pressure "
+            "and no idea what you're up to \u2014 but if you're winding down "
+            "anyway, this is me saying goodnight."
         )
     return (
         f"You'd set {target['bedtime']} as the mark{because}, and the work is at "

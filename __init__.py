@@ -34,9 +34,10 @@ from . import goals as _goals
 from . import schemas as _schemas
 from . import storage as _storage
 from . import tools as _tools
+from . import wearable_tools as _wtools
 from . import winddown as _winddown
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # Tools that can lose work or touch the outside world. The quiet-hours guard
 # only ever considers these; everything else is untouched at every tone.
@@ -74,6 +75,7 @@ def _in_quiet_hours(now: _dt.datetime, start: str, end: str) -> bool:
 
 
 def register(ctx):  # noqa: C901
+    _wtools.bind_ctx(ctx)
     # ----------------------------------------------------------- tools
     for schema, handler in (
         (_schemas.SLEEP_LOG, _tools.sleep_log),
@@ -85,6 +87,8 @@ def register(ctx):  # noqa: C901
         (_cschemas.HYPNOS_COMMITMENT, _ctools.hypnos_commitment),
         (_cschemas.HYPNOS_WINDDOWN, _ctools.hypnos_winddown),
         (_cschemas.HYPNOS_CHECKIN, _ctools.hypnos_checkin),
+        (_cschemas.HYPNOS_WEARABLE, _wtools.hypnos_wearable),
+        (_cschemas.HYPNOS_PING, _wtools.hypnos_ping),
     ):
         ctx.register_tool(
             name=schema["name"],

@@ -160,8 +160,24 @@ def upsert_sleep(
     quality: Optional[int] = None,
     source: str = "manual",
     note: Optional[str] = None,
-) -> None:
+    protect_manual: bool = False,
+) -> dict[str, Any]:
+    """Write a night. Returns {status, previous} rather than silently winning.
+
+    ``protect_manual`` is for automated importers: a wearable must never
+    overwrite something you told Hypnos yourself. You know whether you lay
+    awake for an hour; the watch is guessing. The incoming row is reported as
+    skipped, with the disagreement, so the caller can surface it.
+    """
     con = connect()
+    row = con.execute(
+        "SELECT duration_min, source FROM sleep WHERE night = ?", (night,)
+    ).fetchone()
+    previous = {"duration_min": row[0], "source": row[1]} if row else None
+
+    if protect_manual and previous and previous["source"] in ("manual", "csv"):
+        return {"status": "skipped_manual", "previous": previous}
+
     con.execute(
         """
         INSERT INTO sleep (night, sleep_start, sleep_end, duration_min,
@@ -172,7 +188,7 @@ def upsert_sleep(
             sleep_end    = excluded.sleep_end,
             duration_min = excluded.duration_min,
             wake_count   = excluded.wake_count,
-            quality      = excluded.quality,
+            quality      = COALESCE(excluded.quality, sleep.quality),
             source       = excluded.source,
             note         = excluded.note,
             logged_at    = excluded.logged_at
@@ -190,6 +206,10 @@ def upsert_sleep(
         ),
     )
     con.commit()
+    return {
+        "status": "updated" if previous else "inserted",
+        "previous": previous,
+    }
 
 
 def list_sleep(limit: int = 60) -> list[dict[str, Any]]:
