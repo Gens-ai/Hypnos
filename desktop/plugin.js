@@ -621,6 +621,75 @@ function HypnosSettings({ ctx }) {
       }),
 
       Row({
+        label: 'How often it may speak',
+        hint:
+          'Minimum minutes between any two nudges. Before your bedtime each stage is mentioned once and then dropped; past your bedtime it may come back on this interval. 0 removes the spacing.',
+        children: jsxs('div', {
+          style: { display: 'flex', gap: '6px', alignItems: 'center' },
+          children: [
+            jsx('input', {
+              type: 'number',
+              defaultValue: g.nudge_gap_min || 45,
+              min: 0,
+              max: 240,
+              step: 5,
+              onBlur: e => void save({ nudge_gap_min: parseInt(e.target.value, 10) }),
+              style: { ...inputStyle, width: '80px' }
+            }),
+            jsx('span', {
+              style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary)' },
+              children: 'minutes apart, at most'
+            })
+          ]
+        })
+      }),
+
+      Row({
+        label: 'Wait for a natural stopping point',
+        hint:
+          'When a nudge comes due while something is failing or half-finished, hold it back and speak when the work settles instead. If nothing settles within the patience window it speaks anyway. On Gentle it simply stays quiet and misses the window.',
+        children: jsxs('div', {
+          style: { display: 'flex', gap: '10px', alignItems: 'center' },
+          children: [
+            jsxs('label', {
+              style: {
+                display: 'flex',
+                gap: '5px',
+                alignItems: 'center',
+                fontSize: '0.75rem'
+              },
+              children: [
+                jsx('input', {
+                  type: 'checkbox',
+                  checked: g.prefer_clean_break !== 'false',
+                  onChange: e => void save({ prefer_clean_break: e.target.checked })
+                }),
+                'hold for a clean break'
+              ]
+            }),
+            jsx('input', {
+              type: 'number',
+              defaultValue: g.clean_break_patience_min || 20,
+              min: 0,
+              max: 120,
+              step: 5,
+              disabled: g.prefer_clean_break === 'false',
+              onBlur: e =>
+                void save({ clean_break_patience_min: parseInt(e.target.value, 10) }),
+              style: {
+                ...inputStyle,
+                width: '70px',
+                opacity: g.prefer_clean_break === 'false' ? 0.4 : 1
+              }
+            }),
+            jsx('span', {
+              style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary)' },
+              children: 'min patience'
+            })
+          ]
+        })
+      }),
+      Row({
         label: 'Gradually shift to a different bedtime',
         hint:
           'Optional. Abrupt schedule changes do not hold; roughly 15 min a week does. Leave blank to keep your target where it is.',

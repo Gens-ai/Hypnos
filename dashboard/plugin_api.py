@@ -161,6 +161,9 @@ class GoalBody(BaseModel):
     ramp_min_per_week: Optional[int] = None
     tone: Optional[str] = None
     nudge_delivery: Optional[str] = None
+    nudge_gap_min: Optional[int] = None
+    prefer_clean_break: Optional[bool] = None
+    clean_break_patience_min: Optional[int] = None
     checkin_enabled: Optional[bool] = None
     checkin_time: Optional[str] = None
     checkin_channel: Optional[str] = None
@@ -174,12 +177,40 @@ async def write_goals(body: GoalBody) -> dict[str, Any]:
         import json as _json  # noqa: PLC0415
 
         payload = body.model_dump(exclude_none=True)
-        # nudge_delivery is settings-only, not exposed as an agent tool arg.
-        delivery = payload.pop("nudge_delivery", None)
-        out = _json.loads(ct.hypnos_goal(payload))
-        if delivery in ("inject", "notify", "both"):
-            g.set_goals(nudge_delivery=delivery)
-            out["goals"] = g.get_goals()
+        # Settings-only keys: not exposed as agent tool arguments.
+        settings_only = {
+            k: payload.pop(k)
+            for k in (
+                "nudge_delivery",
+                "nudge_gap_min",
+                "prefer_clean_break",
+                "clean_break_patience_min",
+            )
+            if k in payload
+        }
+        if "nudge_gap_min" in settings_only:
+            v = int(settings_only["nudge_gap_min"])
+            if not 0 <= v <= 240:
+                return {"success": False, "error": "nudge_gap_min must be 0-240."}
+        if "clean_break_patience_min" in settings_only:
+            v = int(settings_only["clean_break_patience_min"])
+            if not 0 <= v <= 120:
+                return {
+                    "success": False,
+                    "error": "clean_break_patience_min must be 0-120.",
+                }
+        if settings_only.get("nudge_delivery") not in (
+            None,
+            "inject",
+            "notify",
+            "both",
+        ):
+            return {"success": False, "error": "nudge_delivery must be inject/notify/both."}
+
+        out = _json.loads(ct.hypnos_goal(payload)) if payload.get("action") else {"success": True}
+        if settings_only:
+            g.set_goals(**settings_only)
+        out["goals"] = g.get_goals()
         return out
     except Exception as exc:
         return {"success": False, "error": f"{type(exc).__name__}: {exc}"}

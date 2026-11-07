@@ -71,11 +71,23 @@ CREATE TABLE IF NOT EXISTS commitments (
 );
 CREATE INDEX IF NOT EXISTS commitments_date ON commitments(on_date);
 
--- One nudge per rung per night, enforced here.
+-- One nudge per rung per night for the early rungs; 'past' may repeat on
+-- the user's chosen interval. Multiple rows per rung are allowed, so the
+-- gate is a count plus a cooldown rather than a primary-key collision.
 CREATE TABLE IF NOT EXISTS nudge_log (
+    id     INTEGER PRIMARY KEY AUTOINCREMENT,
     night  TEXT NOT NULL,
     rung   TEXT NOT NULL,
-    at     REAL NOT NULL,
+    at     REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS nudge_log_night ON nudge_log(night);
+
+-- A nudge that came due while work was mid-flight waits here for a natural
+-- stopping point, up to the user's patience window.
+CREATE TABLE IF NOT EXISTS nudge_pending (
+    night TEXT NOT NULL,
+    rung  TEXT NOT NULL,
+    since REAL NOT NULL,
     PRIMARY KEY (night, rung)
 );
 
@@ -101,8 +113,38 @@ def connect() -> sqlite3.Connection:
 
     con = plugin_db(PLUGIN_NAME)
     con.executescript(_SCHEMA)
+    _migrate(con)
     con.commit()
     return con
+
+
+def _migrate(con: sqlite3.Connection) -> None:
+    """Bring an older nudge_log (PK night+rung, no id) up to the new shape."""
+    try:
+        cols = {r[1] for r in con.execute("PRAGMA table_info('nudge_log')")}
+    except sqlite3.Error:
+        return
+    if not cols or "id" in cols:
+        return
+    try:
+        con.executescript(
+            """
+            ALTER TABLE nudge_log RENAME TO nudge_log_old;
+            CREATE TABLE nudge_log (
+                id     INTEGER PRIMARY KEY AUTOINCREMENT,
+                night  TEXT NOT NULL,
+                rung   TEXT NOT NULL,
+                at     REAL NOT NULL
+            );
+            INSERT INTO nudge_log (night, rung, at)
+                SELECT night, rung, at FROM nudge_log_old;
+            DROP TABLE nudge_log_old;
+            CREATE INDEX IF NOT EXISTS nudge_log_night ON nudge_log(night);
+            """
+        )
+        con.commit()
+    except sqlite3.Error:
+        pass
 
 
 # ---------------------------------------------------------------- sleep
@@ -293,18 +335,60 @@ def recent_guard_events(limit: int = 20) -> list[dict[str, Any]]:
 
 
 def nudge_already_fired(night: str, rung: str) -> bool:
+    return nudge_count(night, rung) > 0
+
+
+def nudge_count(night: str, rung: str) -> int:
     con = connect()
     row = con.execute(
-        "SELECT 1 FROM nudge_log WHERE night = ? AND rung = ?", (night, rung)
+        "SELECT COUNT(*) FROM nudge_log WHERE night = ? AND rung = ?", (night, rung)
     ).fetchone()
-    return row is not None
+    return int(row[0]) if row else 0
+
+
+def last_nudge_at(night: str) -> Optional[float]:
+    """When any nudge last fired tonight — the cooldown anchor."""
+    con = connect()
+    row = con.execute(
+        "SELECT MAX(at) FROM nudge_log WHERE night = ?", (night,)
+    ).fetchone()
+    return float(row[0]) if row and row[0] is not None else None
 
 
 def record_nudge(night: str, rung: str) -> None:
     con = connect()
     con.execute(
-        "INSERT OR IGNORE INTO nudge_log (night, rung, at) VALUES (?, ?, ?)",
+        "INSERT INTO nudge_log (night, rung, at) VALUES (?, ?, ?)",
         (night, rung, _dt.datetime.now().timestamp()),
+    )
+    con.execute(
+        "DELETE FROM nudge_pending WHERE night = ? AND rung = ?", (night, rung)
+    )
+    con.commit()
+
+
+def pending_since(night: str, rung: str) -> Optional[float]:
+    """When this rung first came due while work was mid-flight."""
+    con = connect()
+    row = con.execute(
+        "SELECT since FROM nudge_pending WHERE night = ? AND rung = ?", (night, rung)
+    ).fetchone()
+    return float(row[0]) if row else None
+
+
+def mark_pending(night: str, rung: str, since: float) -> None:
+    con = connect()
+    con.execute(
+        "INSERT OR IGNORE INTO nudge_pending (night, rung, since) VALUES (?, ?, ?)",
+        (night, rung, since),
+    )
+    con.commit()
+
+
+def clear_pending(night: str, rung: str) -> None:
+    con = connect()
+    con.execute(
+        "DELETE FROM nudge_pending WHERE night = ? AND rung = ?", (night, rung)
     )
     con.commit()
 

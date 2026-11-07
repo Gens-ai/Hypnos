@@ -40,9 +40,14 @@ TONE_RUNGS: dict[str, frozenset[str]] = {
     "guardian": frozenset({"runway", "approach", "target", "past"}),
 }
 
-# Gentle only speaks when you are at a natural break; louder tones will
-# speak regardless but adapt the wording.
+# Only these tones will speak regardless of whether work is at rest; gentle
+# waits for a genuine clean break and gives up if one never comes.
 CLEAN_ONLY = frozenset({"gentle"})
+
+# Rungs allowed to fire more than once a night, spaced by nudge_gap_min.
+# Everything before the target is said once and then dropped; staying up
+# well past your own mark is the only thing worth mentioning again.
+REPEATABLE_RUNGS = frozenset({"past"})
 
 _BAR_CELLS = 10
 
@@ -222,9 +227,15 @@ def should_nudge(
 ) -> Optional[dict[str, Any]]:
     """Decide whether to speak right now. Returns the payload, or None.
 
-    Silent when: no target set, tone 'off', rung not allowed for the tone,
-    this rung already fired tonight, the user snoozed, or the tone wants a
-    clean stopping point and we're not at one.
+    Order of gates, cheapest and most absolute first:
+
+      1. no target set, or tone 'off'            -> silent, always
+      2. snoozed tonight                         -> silent, no exceptions
+      3. not in a rung this tone may speak on    -> silent
+      4. inside the cooldown (nudge_gap_min)     -> silent
+      5. rung already said, and not repeatable   -> silent
+      6. work is mid-flight                      -> hold for a natural break,
+         up to clean_break_patience_min; 'gentle' never fires while messy
     """
     now = now or _dt.datetime.now()
     from . import activity as _activity  # noqa: PLC0415
@@ -234,6 +245,7 @@ def should_nudge(
     if target["source"] == "none" or not target.get("bedtime"):
         return None
 
+    g = _goals.get_goals()
     tone = target.get("tone", "gentle")
     if tone == "off":
         return None
@@ -249,12 +261,40 @@ def should_nudge(
     if rung not in TONE_RUNGS.get(tone, frozenset()):
         return None
 
-    state = stop_state(recent or [], cwd=cwd)
-    if tone in CLEAN_ONLY and not state["clean"]:
+    # --- spacing: never two nudges inside the user's chosen gap
+    try:
+        gap_min = max(0, int(g.get("nudge_gap_min") or 45))
+    except (TypeError, ValueError):
+        gap_min = 45
+    last = _storage.last_nudge_at(night)
+    if last is not None and (now.timestamp() - last) < gap_min * 60:
         return None
 
-    if _storage.nudge_already_fired(night, rung):
+    # --- repetition: early rungs are said once, 'past' may recur
+    if _storage.nudge_count(night, rung) and rung not in REPEATABLE_RUNGS:
         return None
+
+    # --- natural stopping point
+    state = stop_state(recent or [], cwd=cwd)
+    waited_min = 0
+    if not state["clean"]:
+        if tone in CLEAN_ONLY:
+            # Gentle would rather miss the window than cut in.
+            return None
+        if str(g.get("prefer_clean_break", "true")).lower() == "true":
+            try:
+                patience = max(0, int(g.get("clean_break_patience_min") or 20))
+            except (TypeError, ValueError):
+                patience = 20
+            since = _storage.pending_since(night, rung)
+            if since is None:
+                since = now.timestamp()
+                _storage.mark_pending(night, rung, since)
+            waited_min = int((now.timestamp() - since) / 60)
+            if waited_min < patience:
+                return None  # still hoping for a clean break
+    else:
+        _storage.clear_pending(night, rung)
 
     return {
         "night": night,
@@ -263,5 +303,7 @@ def should_nudge(
         "tone": tone,
         "target": target,
         "state": state,
+        "waited_for_break_min": waited_min,
+        "repeat": _storage.nudge_count(night, rung),
         "text": render(rung, delta, target, state, now),
     }

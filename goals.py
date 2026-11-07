@@ -29,6 +29,12 @@ DEFAULTS: dict[str, str] = {
     "ramp_started": "",
     "tone": "gentle",
     "nudge_delivery": "inject",    # inject | notify | both
+    # Minimum minutes between any two nudges, whatever the rung.
+    "nudge_gap_min": "45",
+    # Hold a due nudge until work is actually at rest, rather than cutting in.
+    "prefer_clean_break": "true",
+    # How long to wait for that natural break before giving up on it.
+    "clean_break_patience_min": "20",
     "checkin_enabled": "false",
     "checkin_time": "10:00",
     "checkin_channel": "desktop",  # desktop | <messaging target>
