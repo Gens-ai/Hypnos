@@ -24,8 +24,8 @@ Only 3 nights have both sleep and activity data. Hypnos needs at least
 worth acting on. Log 7 more nights.
 ```
 
-That histogram is real output from the author's machine. 100% of his agent
-work happens between 23:00 and 05:00, peaking at 4am. He did not know that.
+That histogram is real output from the author's machine: 100% of his agent
+work falls between 23:00 and 05:00, peaking at 4am.
 
 ## It refuses to lie to you
 
