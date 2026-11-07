@@ -79,9 +79,23 @@ below `firm`.
 | `guardian` | Same, and those commands can be refused outright. Entirely your call. |
 
 Nudges land between your turns, never in the middle of a tool chain, either
-as a quoted block the agent reads out or a desktop notification or both. One
-per rung per night, then it shuts up. Say "not tonight" and it's gone without
-a word of argument, no second attempt, nothing about it in the morning.
+as a quoted block the agent reads out or a desktop notification or both.
+
+You set the spacing. A minimum gap (45 minutes by default, anywhere from 0 to
+240) applies between any two nudges whatever the stage. Each stage before
+your bedtime gets mentioned once and is then dropped, because "22 min out"
+does not bear repeating. Only the past-your-bedtime message is allowed to
+come back, on that same interval.
+
+It also tries to catch you at a sensible moment rather than cutting in. If a
+nudge comes due while something is failing or half-finished it waits, and
+speaks when the work settles. That wait is bounded by a patience window (20
+minutes by default) after which it speaks anyway, except on `gentle`, which
+would rather miss the window than interrupt you. Turn the whole behaviour off
+if you want it punctual instead of polite.
+
+Say "not tonight" and it's gone without a word of argument, no second
+attempt, nothing about it in the morning.
 
 ## It can tell whether you're at a clean break
 
@@ -195,6 +209,64 @@ It stays inside the plugin SDK surface: no prototype patching, no `eval`, no
 querying the app's own markup, no DOM observers. Everything arrives through
 this package's own backend namespace, and if the Python half is switched off
 the pane says so instead of exploding.
+
+## Pipeline
+
+The thing Hypnos wants next is more context about the body attached to the
+keyboard. That does not mean writing a vendor integration for every watch on
+the market, and it very deliberately does not mean Hypnos holding anybody's
+OAuth tokens.
+
+**One adapter, every device.** Hermes plugins can call a configured MCP server
+through `ctx.call_mcp`, gated by a per-plugin, per-server allowlist the user
+sets themselves. Several health MCP servers already exist in the Hermes
+catalog. So the next real feature is a generic reader that pulls last night's
+sleep from whichever of them you already run, under your own allowlist, with
+no vendor code and no credentials inside Hypnos:
+
+| Already in the catalog | Covers |
+|---|---|
+| `athletedata` | Garmin, Oura, WHOOP, Hevy, Intervals.icu and ~35 more, hosted, paid |
+| `apple-health-mcp` | Apple Health export on disk: sleep, HRV, heart rate |
+| `healthrelay` | Apple Health through a receiver you host yourself |
+| `health-data`, `health-insights`, `healthcare` | local health stores with their own query tools |
+
+Grant one of those in `mcp_allowlist` and sleep arrives on its own. That is
+the whole integration.
+
+**Direct, where it's genuinely easy.** Oura and WHOOP both publish documented
+REST APIs with sleep collections, so a thin reader for either is a small job.
+The honest caveat is that Hermes's declarative OAuth machinery is aimed at
+inference providers rather than plugins calling third-party services, so the
+realistic shape today is a token you supply through `requires_env` and
+Hypnos reads but never stores. Garmin has no public consumer API, only an
+unofficial scraping library, so that one waits for `athletedata` to do the
+dirty work.
+
+**Gadgetbridge, for the stubborn.** Mi Band and friends talk to Gadgetbridge,
+which keeps a local SQLite database and can export it. A parser for that is
+small, needs no account, and sends nothing anywhere. This is the path for
+anyone whose device has no API at all.
+
+**What the extra context buys.** Duration is the least interesting thing a
+watch knows. Sleep onset latency, how long it actually took you to drop off
+after closing the laptop, is the number that would make the wind-down advice
+specific rather than general. Resting heart rate and HRV on the nights after
+a hard session would say something about recovery that no amount of session
+telemetry can. And an actual measured wake time would let the commitment
+arithmetic check itself instead of assuming you got up when you said you
+would.
+
+**Aggregators, probably not.** Terra, Vital and Rook each turn one
+integration into thirty. They also mean routing your sleep through a third
+party's servers, and that is a poor trade for a plugin whose whole pitch is
+that it makes no network calls. If it ever happens it will be opt-in,
+disclosed in full, and off by default.
+
+Explicit non-goals: no account, no hosted service, no telemetry, and no
+reading a credential store that belongs to something else. Manual entry stays
+a first-class path forever, because the most reliable sleep tracker is a
+person saying "about five hours, badly".
 
 ## Install
 
