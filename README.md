@@ -32,18 +32,35 @@ handing you the commands, and it has timestamps on all of it.
 It isn't a witness. It's an accessory. Hypnos is what happens when the
 accessory starts taking notes.
 
-Here's real output from my machine, before I had logged a single night:
+Here's real output from my machine, unedited, after four days of use:
 
 ```
-  00:00 ██████████████████ 53
-  02:00 ████████████ 35
-  03:00 █████████████████████████████████████ 109
-  04:00 ████████████████████████████████████████ 117
-  23:00 ██ 2
+  00:00 █████ 53
+  02:00 ███ 35
+  03:00 ███████████ 110
+  04:00 ██████████████████████████ 244
+  05:00 ████████ 77
+  06:00 ████████████████████████████████████████ 371
+  07:00 ███████████████████████ 217
+  13:00 ▌ 6
+  14:00 ██████ 58
+  15:00 ██ 25
+  16:00 ▌ 8
+  23:00 ▌ 2
 ```
 
-Nothing between 05:00 and 22:00. Not one message. No watch, no subscription
-and no correlation coefficient required to find that interesting.
+Ninety-two percent of it lands outside 08:00–22:00, and the peak hour is
+06:00. There are no messages at all between 08:00 and 13:00, or after 17:00.
+No watch, no subscription and no correlation coefficient required to find that
+interesting.
+
+Two honest caveats, since this is the number the whole plugin rests on. It is
+**four days** of data — enough to see a shape, nowhere near enough for the
+report to say anything, which is why `hypnos_report` still returns
+`INSUFFICIENT_EVIDENCE` on this machine. And the peak moved: it was 04:00 when
+I started writing this, and 06:00 by the time I finished, because the thing
+that pushed it later was building Hypnos. The measurement perturbed the
+measured. Both facts argue for the plugin rather than against it.
 
 ## There is no correct bedtime
 
