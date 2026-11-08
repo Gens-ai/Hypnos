@@ -41,8 +41,9 @@ SLEEP_LOG = {
 SLEEP_IMPORT = {
     "name": "sleep_import",
     "description": (
-        "Bulk-import nights from a CSV export (Gadgetbridge, Mi Fitness, Google "
-        "Fit, Oura, or hand-made). Needs a date column and a duration column."
+        "Import nights from a file: a CSV from any tracker, or a Gadgetbridge "
+        "SQLite export (Mi Band, Amazfit). The format is auto-detected. Your "
+        "own hand-logged nights are never overwritten."
     ),
     "parameters": {
         "type": "object",
@@ -50,7 +51,19 @@ SLEEP_IMPORT = {
             "path": {"type": "string", "description": "Path to the CSV file."},
             "source": {
                 "type": "string",
-                "description": "Label for provenance, e.g. 'gadgetbridge'.",
+                "enum": ["auto", "csv", "gadgetbridge"],
+                "description": (
+                    "Format. Default 'auto' sniffs the file: a SQLite header "
+                    "means gadgetbridge, anything else csv."
+                ),
+            },
+            "probe": {
+                "type": "boolean",
+                "description": (
+                    "Parse and report WITHOUT writing. Always probe an "
+                    "unfamiliar export first \u2014 it shows what was understood "
+                    "and, for Gadgetbridge, the raw activity-kind histogram."
+                ),
             },
         },
         "required": ["path"],

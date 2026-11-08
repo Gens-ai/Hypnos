@@ -199,7 +199,7 @@ report that cheerfully and I'll have learned something.
 | `hypnos_winddown` | Nudge status, `snooze`, and the bedtime `handoff`. |
 | `hypnos_checkin` | The one morning question. |
 | `sleep_log` | Log a night. Takes `7h20m`, `6.5h`, `7:20`, `400m`. |
-| `sleep_import` | Bulk CSV. Gadgetbridge, Mi Fitness, Google Fit, Oura, handmade. |
+| `sleep_import` | Import a file — CSV or a Gadgetbridge database. Format sniffed. |
 | `hypnos_activity` | Your work pattern, out of Hermes's own history. |
 | `hypnos_report` | The honest correlation. `format="text"` for the chart. |
 | `hypnos_guard` | Quiet-hours guard on destructive work. Off unless you say so. |
@@ -219,9 +219,74 @@ which is exactly why manual entry is a first-class path and not a fallback.
 
 ## Connecting a watch
 
-Hypnos writes no vendor integrations and holds no credentials. Instead it
-reads from a health MCP server you already run, through `ctx.call_mcp`, which
-Hermes gates behind an allowlist you control. Three steps.
+Every bridge lands on the same seam. A source answers three questions —
+what config it needs, what it parsed (`probe`, which writes nothing), and
+the nights themselves — and that's all. Field aliases, unit coercion,
+plausibility bounds, dedupe, provenance and the rule that **your own entries
+are never overwritten** live in one place and apply to every source
+identically. Adding a bridge is a class and a line, and it inherits all of
+that.
+
+| Source | What it reads | Supplies beyond duration |
+|---|---|---|
+| `csv` | Any tracker's CSV export, or one you typed | wake count, quality |
+| `gadgetbridge` | A Gadgetbridge SQLite export (Mi Band, Amazfit) | onset/offset times, wake count |
+| `mcp` | A health MCP server you already run | onset/offset times, wake count, quality |
+
+Each declares what it can supply, so the report can say *"this source has no
+onset latency"* rather than treating absent as zero.
+
+### A file: CSV or Gadgetbridge
+
+```
+"import my sleep from ~/sync/gadgetbridge.db"
+```
+
+The format is sniffed — a SQLite header means Gadgetbridge, anything else is
+CSV — so you don't have to name it. **Probe an unfamiliar export first**; it
+writes nothing and shows you what was understood.
+
+Gadgetbridge doesn't store nights. It stores one row per minute tagged with a
+device-specific activity kind, so a night is reassembled: select sleep-kind
+samples, group contiguous runs, collapse each into a duration plus the
+interruptions inside it. The raw-kind encoding differs per model and isn't
+documented per device, so nothing is hardcoded blind — the table and columns
+are discovered, the sleep kinds are overridable, and `probe` hands back the
+**kind histogram** it found:
+
+```
+table: HUAMI_EXTENDED_ACTIVITY_SAMPLE   kind_histogram: {"2": 1017, "4": 504, "1": 90}
+2026-11-01  429min  wakes=1
+2026-11-02  359min  wakes=0
+```
+
+If the nights look wrong, the sleep kinds are wrong — pass `sleep_kinds`
+explicitly rather than trusting the default.
+
+Auto-sync, once set up and then never again: Gadgetbridge's **Settings →
+Automations → Auto export** writes its database on an interval, Syncthing
+carries it to your machine, and a cron job imports it. No account, no cloud,
+nothing to click.
+
+### A guessed unit is reported, never presented as a reading
+
+A column called `duration` holding `6.5` means hours. Holding `12` it could
+mean either, and reading that as a twelve-hour night would be inventing data.
+So the guess is surfaced instead of buried:
+
+```
+assumed_units: [{night: 2026-11-09, minutes: 720,
+                 assumption: "read 12 as hours — rename the column to
+                              duration_min if it meant minutes"}]
+```
+
+`duration_min` and `duration_hours` are unambiguous and carry no assumption.
+
+### A health MCP server
+
+Hypnos writes no vendor integrations and holds no credentials. It reads from a
+server you already run, through `ctx.call_mcp`, which Hermes gates behind an
+allowlist you control. Three steps.
 
 **1. Install whichever health plugin matches your device.**
 
@@ -231,7 +296,7 @@ Hermes gates behind an allowlist you control. Three steps.
 | An iPhone or Apple Watch | `apple-health-mcp` | free, reads a local export |
 | An iPhone and a server you host | `healthrelay` | free |
 | Something already in a local health store | `health-data` | free |
-| A Mi Band, Amazfit or anything Gadgetbridge supports | export the SQLite file and use `sleep_import` | free |
+| A Mi Band, Amazfit or anything Gadgetbridge supports | auto-export + `sleep_import` (reads the SQLite directly) | free |
 | None of the above | `sleep_log`, by typing | free |
 
 **2. Grant it to Hypnos.** Nothing happens without this, by design:
@@ -252,11 +317,13 @@ plugins:
 "check it can read my sleep"     -> hypnos_wearable action=probe
 ```
 
-`probe` writes nothing. It calls the server, shows you the nights it managed
-to parse and a preview of the raw response, and tells you if it got nothing.
-That last part matters: these servers each return a different shape, so if
-the tool name or arguments are wrong you want to find out before any of it
-lands in your history. Once the numbers look right, `sync` imports them.
+`probe` writes nothing. It calls the server, shows the nights it parsed and a
+preview of the raw response, and tells you if it got nothing.
+
+**The preset tool names are informed guesses, not verified against live
+servers.** These servers each return a different shape and rename their tools
+between versions, so probing is not a formality — it is how you find out
+whether the mapping is right before any of it lands in your history.
 
 **Your own entries always win.** A watch is guessing at how long you slept;
 you know whether you lay there for an hour. Anything you logged by hand is
@@ -346,8 +413,14 @@ the pane says so instead of exploding.
 ## Pipeline
 
 More context about the body attached to the keyboard, without writing a
-vendor integration for every watch on the market. The MCP reader above is the
-shipped half of this; what follows is not built yet.
+vendor integration for every watch on the market. Three bridges ship today
+(CSV, Gadgetbridge, MCP) behind one seam, so what follows is a matter of
+adding modules rather than redesigning anything.
+
+**Verified status, plainly:** the Gadgetbridge and CSV readers are tested
+end-to-end against real file formats. The MCP reader's parser is tested
+against eight recorded response shapes, but its preset tool names have never
+been run against a live server — `probe` exists precisely because of that.
 
 **Direct, where it's genuinely easy.** Oura and WHOOP both publish documented
 REST APIs with sleep collections, so a thin reader for either is a small job.
@@ -406,6 +479,9 @@ then puts it back.
 - **Writes** only inside `<hermes home>/plugin-data/hypnos/`: a SQLite
   database through the sanctioned `plugin_db()` helper, plus the handoff notes
   you asked for.
+- **Reads sleep files you point it at**, read-only: a CSV, or a Gadgetbridge
+  SQLite export opened with `mode=ro`. Nothing is written back to either, and
+  an import never overwrites a night you logged yourself.
 - **Reads git status** in the session's working directory when there is one,
   purely to work out whether you're at a clean stopping point. Nothing is
   written and no history is read.

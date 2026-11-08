@@ -109,82 +109,42 @@ def sleep_log(params: dict, **_kw: Any) -> str:
 
 
 def sleep_import(params: dict, **_kw: Any) -> str:
-    """Import a CSV of nights. Gadgetbridge/Mi Fitness/Fit exports, or hand-rolled.
+    """Import nights from a file. Dispatches to the registry by format.
 
-    Expected headers (case-insensitive, extras ignored):
-        night|date, duration|duration_min|minutes, wake_count?, quality?
+    A thin dispatcher on purpose: the alias tables, unit coercion,
+    plausibility bounds, dedupe and manual-protection all live in
+    ``normalize``, so a CSV and a Gadgetbridge database get byte-identical
+    treatment. This function used to carry its own smaller copy of that
+    logic, which is how it ended up overwriting hand-logged nights while
+    the MCP path protected them.
     """
+    from . import sleep_sources as _src  # noqa: PLC0415
+
     path = params.get("path")
     if not path:
         return _err("'path' is required.")
-    path = os.path.expanduser(path)
-    if not os.path.exists(path):
-        return _err(f"No such file: {path}")
-    if os.path.getsize(path) > 8 * 1024 * 1024:
-        return _err("Refusing to read a file larger than 8 MB.")
 
-    import csv  # noqa: PLC0415
-
-    imported, skipped = 0, []
-    with open(path, newline="", encoding="utf-8", errors="replace") as fh:
-        reader = csv.DictReader(fh)
-        if not reader.fieldnames:
-            return _err("CSV has no header row.")
-        norm = {(f or "").strip().lower(): f for f in reader.fieldnames}
-
-        def pick(*names):
-            for nm in names:
-                if nm in norm:
-                    return norm[nm]
-            return None
-
-        c_night = pick("night", "date", "day")
-        c_dur = pick("duration", "duration_min", "minutes", "sleep_duration")
-        c_wake = pick("wake_count", "wakeups", "awake_count")
-        c_qual = pick("quality", "score")
-        if not c_night or not c_dur:
+    name = (params.get("source") or "").strip().lower()
+    if name in ("", "auto"):
+        name = _src.sniff_file(str(path)) or ""
+        if not name:
             return _err(
-                "CSV needs a date column (night|date|day) and a duration column "
-                "(duration|duration_min|minutes).",
-                found_columns=reader.fieldnames,
+                f"Could not read {path!r}. Pass source= explicitly.",
+                known_sources=sorted(_src.REGISTRY),
             )
+    source = _src.get_source(name)
+    if source is None:
+        return _err(f"Unknown source {name!r}.", known_sources=sorted(_src.REGISTRY))
 
-        for i, row in enumerate(reader, start=2):
-            raw_night = (row.get(c_night) or "").strip()[:10]
-            dur = _parse_duration(row.get(c_dur))
-            try:
-                _dt.datetime.strptime(raw_night, "%Y-%m-%d")
-            except ValueError:
-                skipped.append({"line": i, "why": f"bad date {raw_night!r}"})
-                continue
-            if dur is None or not 30 <= dur <= 1000:
-                skipped.append({"line": i, "why": f"bad duration {row.get(c_dur)!r}"})
-                continue
-            wake = None
-            if c_wake and (row.get(c_wake) or "").strip().isdigit():
-                wake = int(row[c_wake])
-            qual = None
-            if c_qual:
-                try:
-                    q = int(float(row[c_qual]))
-                    qual = q if 1 <= q <= 5 else None
-                except (TypeError, ValueError):
-                    qual = None
-            _storage.upsert_sleep(
-                raw_night,
-                dur,
-                wake_count=wake,
-                quality=qual,
-                source=params.get("source") or "csv",
-            )
-            imported += 1
+    cfg = {k: v for k, v in params.items() if k not in ("source", "probe")}
+    if params.get("probe"):
+        out = source.probe(cfg)
+        return _ok(**out) if out.get("ok") else _err(out.get("error", "probe failed"))
 
-    return _ok(
-        imported=imported,
-        skipped=len(skipped),
-        skipped_detail=skipped[:10],
-        nights_logged=_storage.sleep_count(),
-    )
+    out = source.fetch(cfg)
+    if not out.get("ok"):
+        return _err(out.get("error", "import failed"))
+    return _ok(**out)
 
 
 # ---------------------------------------------------- hypnos_activity

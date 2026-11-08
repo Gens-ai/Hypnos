@@ -20,7 +20,6 @@ import json as _json
 from typing import Any, Optional
 
 from . import goals as _goals
-from . import sources as _sources
 from . import storage as _storage
 from . import winddown as _winddown
 
@@ -38,19 +37,27 @@ def _err(msg: str, **extra: Any) -> str:
 
 
 def hypnos_wearable(params: dict[str, Any]) -> str:
-    """probe | sync | status | configure a health MCP server as a sleep source."""
+    """Configure and read a server-backed sleep source (MCP health servers).
+
+    File-based bridges go through ``sleep_import``; this one owns the
+    sources that need a live call. Both end in ``normalize.ingest``, so the
+    manual-protection and plausibility rules are the same either way.
+    """
+    from . import sleep_sources as _src  # noqa: PLC0415
+
     action = (params.get("action") or "status").lower()
     g = _goals.get_goals()
 
-    if action == "presets":
+    if action in ("presets", "sources"):
         return _json.dumps({
             "success": True,
-            "presets": _sources.PRESETS,
+            "sources": _src.describe_sources(),
+            "mcp_presets": _src.McpSource.PRESETS,
             "how_to": (
-                "Pick the server you already have installed, then grant it to "
-                "Hypnos in config.yaml under "
-                "plugins.entries.hypnos.mcp_allowlist: [\"<server>\"]. "
-                "Then run action='probe' to confirm the shape before syncing."
+                "These preset tool names are informed guesses, not verified "
+                "against live servers. Grant the server in config.yaml under "
+                "plugins.entries.hypnos.mcp_allowlist, then run action='probe' "
+                "and check what came back before importing anything."
             ),
         }, indent=2)
 
@@ -60,7 +67,7 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
             return _err("configure needs a server name. See action='presets'.")
         tool = (params.get("tool") or "").strip()
         if not tool:
-            tool = str(_sources.PRESETS.get(server, {}).get("tool") or "")
+            tool = str(_src.McpSource.PRESETS.get(server, {}).get("tool") or "")
         if not tool:
             return _err(f"No preset tool for '{server}' — pass tool= explicitly.")
         args = params.get("args")
@@ -70,7 +77,7 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
             except ValueError:
                 return _err("args must be a JSON object.")
         if args is None:
-            args = _sources.PRESETS.get(server, {}).get("args") or {}
+            args = _src.McpSource.PRESETS.get(server, {}).get("args") or {}
         _goals.set_goals(
             wearable_server=server,
             wearable_tool=tool,
@@ -80,7 +87,7 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
         return _json.dumps({
             "success": True,
             "configured": {"server": server, "tool": tool, "args": args},
-            "next": "Run action='probe' to check Hypnos can actually read it.",
+            "next": "Run action='probe' — it writes nothing and shows what parsed.",
         }, indent=2)
 
     if action == "disable":
@@ -89,6 +96,7 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
 
     server = (params.get("server") or g.get("wearable_server") or "").strip()
     tool = (params.get("tool") or g.get("wearable_tool") or "").strip()
+
     if action == "status":
         return _json.dumps({
             "success": True,
@@ -96,18 +104,19 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
             "server": server or None,
             "tool": tool or None,
             "last_sync": g.get("wearable_last_sync") or None,
-            "recent_wearable_nights": [
-                r for r in _storage.list_sleep(limit=14)
-                if r.get("source", "").startswith("mcp:")
+            "imported_nights": [
+                r for r in _storage.list_sleep(limit=21)
+                if r.get("source") in ("mcp", "gadgetbridge")
+                or str(r.get("source", "")).startswith("mcp:")
             ][:7],
         }, indent=2, default=str)
 
     if action not in ("probe", "sync"):
         return _err("action must be presets, configure, probe, sync, status or disable")
-    if not server or not tool:
+    if not server:
         return _err(
-            "No wearable source configured. Run action='presets' to see the "
-            "health MCP servers Hypnos knows about, then action='configure'."
+            "No wearable source configured. Run action='presets' to see what "
+            "Hypnos knows about, then action='configure'."
         )
 
     raw_args = params.get("args") or g.get("wearable_args") or "{}"
@@ -116,65 +125,21 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
     except ValueError:
         args = {}
 
-    res = _sources.fetch(_CTX, server, tool, args)
-    if not res.get("ok"):
-        return _err(res.get("error", "unknown error"), server=server, tool=tool)
-
-    nights = res["nights"]
-    if action == "probe":
-        return _json.dumps({
-            "success": True,
-            "server": server,
-            "tool": tool,
-            "nights_parsed": len(nights),
-            "nights": nights[-7:],
-            "raw_preview": res["raw_preview"],
-            "verdict": (
-                f"Parsed {len(nights)} night(s). Nothing was written — run "
-                f"action='sync' when the numbers look right."
-                if nights else
-                "Parsed nothing. Check raw_preview: the tool may need "
-                "different args, or the response may not contain sleep rows."
-            ),
-        }, indent=2, default=str)
-
-    added = updated = skipped = 0
-    conflicts: list[dict[str, Any]] = []
-    for n in nights:
-        out = _storage.upsert_sleep(
-            n["night"], n["duration_min"],
-            sleep_start=n.get("sleep_start"), sleep_end=n.get("sleep_end"),
-            wake_count=n.get("wake_count"),
-            source=f"mcp:{server}", note=None, protect_manual=True,
+    source = _src.get_source("mcp")
+    cfg = {"server": server, "tool": tool, "args": args, "_ctx": _CTX}
+    out = source.probe(cfg) if action == "probe" else source.fetch(cfg)
+    if not out.get("ok"):
+        return _err(out.get("error", "unknown error"), server=server, tool=tool)
+    if action == "sync":
+        _goals.set_goals(
+            wearable_last_sync=_dt.datetime.now().isoformat(timespec="seconds")
         )
-        if out["status"] == "inserted":
-            added += 1
-        elif out["status"] == "updated":
-            updated += 1
-        else:
-            skipped += 1
-            prev = out["previous"] or {}
-            if prev.get("duration_min") != n["duration_min"]:
-                conflicts.append({
-                    "night": n["night"],
-                    "you_logged_min": prev.get("duration_min"),
-                    "device_says_min": n["duration_min"],
-                })
-
-    _goals.set_goals(wearable_last_sync=_dt.datetime.now().isoformat(timespec="seconds"))
-    return _json.dumps({
-        "success": True,
-        "server": server,
-        "added": added,
-        "updated": updated,
-        "skipped_you_logged_these": skipped,
-        "conflicts": conflicts,
-        "note": (
-            "Your own entries are never overwritten. Where the device "
-            "disagrees it is listed above so you can decide."
-            if conflicts else None
-        ),
-    }, indent=2, default=str)
+        if out.get("conflicts"):
+            out["note"] = (
+                "Your own entries are never overwritten. Where the device "
+                "disagrees it is listed above so you can decide."
+            )
+    return _json.dumps({"success": True, **out}, indent=2, default=str)
 
 
 def hypnos_ping(params: dict[str, Any]) -> str:
