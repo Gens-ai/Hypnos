@@ -481,7 +481,12 @@ then puts it back.
   you asked for.
 - **Reads sleep files you point it at**, read-only: a CSV, or a Gadgetbridge
   SQLite export opened with `mode=ro`. Nothing is written back to either, and
-  an import never overwrites a night you logged yourself.
+  an import never overwrites a night you logged yourself. It **fails closed on
+  anything that isn't a sleep export** and echoes none of its contents, so the
+  importer cannot be used as a general file reader; a SQLite file without a
+  Gadgetbridge sample table is refused without its schema being listed. The
+  table name is validated against the database's own catalogue before it
+  reaches a query, and kind filters are bound parameters.
 - **Reads git status** in the session's working directory when there is one,
   purely to work out whether you're at a clean stopping point. Nothing is
   written and no history is read.

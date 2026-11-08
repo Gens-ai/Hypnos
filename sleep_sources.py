@@ -109,12 +109,27 @@ class CsvSource(SleepSource):
             reader = csv.DictReader(fh)
             if not reader.fieldnames:
                 raise ValueError("CSV has no header row.")
+            fields = list(reader.fieldnames)
+            # Fail closed on anything that is not recognisably a sleep export,
+            # and echo NOTHING from it. Without this check the probe preview
+            # turns this tool into an arbitrary file reader that reports the
+            # first line of any readable file -- /etc/passwd, a token file --
+            # straight back into the transcript. The tool's job is importing
+            # sleep, so a file with no date column is simply refused.
+            lowered = {(f or "").strip().lower() for f in fields}
+            if not (lowered & set(_norm.DATE_KEYS)):
+                raise ValueError(
+                    "This does not look like a sleep export: no recognisable "
+                    "date column (one of night/date/day/...). Its contents are "
+                    "not shown. Point this at a sleep CSV, or pass the right "
+                    "file."
+                )
             rows = [dict(r) for r in reader]
         # Lower-case the keys so the shared alias tables apply to CSV too,
         # instead of CSV keeping its own smaller list.
         rows = [{(k or "").strip().lower(): v for k, v in r.items()} for r in rows]
         nights = _norm.extract_nights(rows)
-        preview = {"columns": reader.fieldnames, "rows_read": len(rows)}
+        preview = {"columns": fields, "rows_read": len(rows)}
         return nights, preview
 
 
@@ -284,8 +299,13 @@ class GadgetbridgeSource(SleepSource):
         candidates = [override] if override else [
             n for n in names if "ACTIVITY_SAMPLE" in n.upper()
         ]
+        sample_like = [n for n in names if "ACTIVITY_SAMPLE" in n.upper()]
         if override and override not in names:
-            raise ValueError(f"No such table {override!r}. Tables: {names[:25]}")
+            # Only name the tables when this really is a Gadgetbridge export.
+            # Otherwise this error would enumerate an arbitrary database's
+            # schema back to the caller.
+            hint = f" Tables: {sample_like[:25]}" if sample_like else ""
+            raise ValueError(f"No such table {override!r}.{hint}")
 
         best = None
         for t in candidates:
@@ -307,8 +327,11 @@ class GadgetbridgeSource(SleepSource):
                 best = (t, ts, kind, n)
         if best is None:
             raise ValueError(
-                "No activity-sample table with a timestamp and a kind column. "
-                f"Tables present: {names[:25]}"
+                "This SQLite file has no Gadgetbridge activity-sample table "
+                "with a timestamp and a kind column, so it is not a "
+                "Gadgetbridge export. Its schema is not shown."
+                + (f" Sample-like tables seen: {sample_like[:25]}"
+                   if sample_like else "")
             )
         return best[0], best[1], best[2]
 
