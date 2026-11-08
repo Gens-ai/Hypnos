@@ -63,13 +63,17 @@ def _err(msg: str, **kw: Any) -> str:
 
 
 def sleep_log(params: dict, **_kw: Any) -> str:
+    from . import normalize as _norm  # noqa: PLC0415
+
     duration = _parse_duration(params.get("duration"))
     if duration is None:
         return _err(
             "Could not parse 'duration'. Try '7h20m', '6.5h', '400m' or '7:20'."
         )
-    if not 30 <= duration <= 1000:
-        return _err(f"Duration {duration} min is out of plausible range (30-1000).")
+    # The shared bounds, not a third private copy of them.
+    lo, hi = _norm.MIN_SLEEP_MIN, _norm.MAX_SLEEP_MIN
+    if not lo <= duration <= hi:
+        return _err(f"Duration {duration} min is out of plausible range ({lo}-{hi}).")
 
     night = params.get("night") or _default_night()
     try:
