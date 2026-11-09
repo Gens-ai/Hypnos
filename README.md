@@ -1,17 +1,11 @@
 # Kairos
 
-The Greeks had three words for time. Chronos is the clock: measured,
-sequential, indifferent. Aion is the cycle, the year coming back around.
-Kairos is the third one, and the only useful one here — the right moment, the
-narrow window where an action lands instead of bouncing off.
+**Kairos helps you stop working at night.**
 
-In the iconography he has wings on his feet and a single lock of hair at the
-front of an otherwise bald head. You can catch him on the way in. Once he has
-gone past there is nothing left to grab.
-
-The clock knows what time it is and nothing else. It doesn't know whether
-you're mid-thought or finished, whether the build is green, whether you'd
-thank anyone at all for interrupting. This is named after the other one.
+It's a Hermes Agent plugin that reads your agent's own session history, offers
+a wind-down when you're at a natural break rather than mid-thought, and
+refuses to claim your sleep affects your output unless the sample actually
+supports it.
 
 ```
 > ☾ ████████░░ · bedtime 02:30 · 22 min out
@@ -26,6 +20,19 @@ thank anyone at all for interrupting. This is named after the other one.
 The bar fills with night as your bedtime gets closer, so you can read the
 runway without reading a sentence. The flower only turns up on the last rung,
 once the mark has already gone past. It stays meaningful by being rare.
+
+## Why it's called Kairos
+
+The Greeks had three words for time. Chronos is the clock: measured,
+sequential, indifferent. Aion is the cycle, the year coming back around.
+Kairos is the third one — the right moment, the narrow window where an action
+lands instead of bouncing off. In the iconography he has wings on his feet and
+a single lock of hair at the front of an otherwise bald head: you can catch
+him on the way in, and once he has gone past there is nothing left to grab.
+
+The clock knows what time it is and nothing else. It doesn't know whether
+you're mid-thought or finished, whether the build is green, whether you'd
+thank anyone at all for interrupting. This is named after the other one.
 
 ## Your agent was there
 
