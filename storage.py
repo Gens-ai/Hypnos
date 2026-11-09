@@ -35,6 +35,11 @@ CREATE TABLE IF NOT EXISTS activity (
     late_minutes     INTEGER NOT NULL DEFAULT 0,  -- activity minutes after 23:00
     terminal_calls   INTEGER NOT NULL DEFAULT 0,
     error_results    INTEGER NOT NULL DEFAULT 0,
+    -- Tool calls the live hook actually watched. The ONLY honest denominator
+    -- for error_results: tool_calls is backfilled from state.db, which keeps
+    -- no result text, so most of it was never inspected for failure. A day
+    -- with observed_calls = 0 is UNKNOWN, not error-free.
+    observed_calls   INTEGER NOT NULL DEFAULT 0,
     tool_mix_json    TEXT,
     updated_at       REAL NOT NULL
 );
@@ -136,6 +141,41 @@ def connect() -> sqlite3.Connection:
 
 
 def _migrate(con: sqlite3.Connection) -> None:
+    """Bring older schemas forward. Each step must be a no-op when already applied."""
+    _migrate_activity_observed(con)
+    _migrate_nudge_log(con)
+
+
+def _migrate_activity_observed(con: sqlite3.Connection) -> None:
+    """Add activity.observed_calls to a database created before it existed.
+
+    Existing rows get 0, which is the truthful value: those days' error
+    counts were accumulated without anyone recording how many calls were
+    inspected, so their error rate is unknown rather than zero.
+    """
+    try:
+        cols = {r[1] for r in con.execute("PRAGMA table_info('activity')")}
+    except sqlite3.Error:
+        return
+    if not cols or "observed_calls" in cols:
+        return
+    try:
+        con.execute(
+            "ALTER TABLE activity ADD COLUMN observed_calls INTEGER NOT NULL DEFAULT 0"
+        )
+        # Errors counted before there was a denominator cannot be turned into
+        # a rate, and leaving them in would charge them against whatever
+        # small observed_calls accrues next — a day that straddles this
+        # upgrade would read as catastrophically bad. Discard the
+        # unmeasurable numerator rather than report it wrong.
+        con.execute(
+            "UPDATE activity SET error_results = 0 WHERE observed_calls = 0"
+        )
+    except sqlite3.Error:
+        pass
+
+
+def _migrate_nudge_log(con: sqlite3.Connection) -> None:
     """Bring an older nudge_log (PK night+rung, no id) up to the new shape."""
     try:
         cols = {r[1] for r in con.execute("PRAGMA table_info('nudge_log')")}
@@ -257,8 +297,9 @@ def upsert_activity(day: str, fields: dict[str, Any]) -> None:
             """
             INSERT INTO activity (day, first_activity, last_activity, session_count,
                                   message_count, tool_calls, late_minutes,
-                                  terminal_calls, error_results, tool_mix_json, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  terminal_calls, error_results, observed_calls,
+                                  tool_mix_json, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 day,
@@ -270,6 +311,7 @@ def upsert_activity(day: str, fields: dict[str, Any]) -> None:
                 fields.get("late_minutes", 0),
                 fields.get("terminal_calls", 0),
                 fields.get("error_results", 0),
+                fields.get("observed_calls", 0),
                 fields.get("tool_mix_json"),
                 now,
             ),
@@ -287,6 +329,7 @@ def upsert_activity(day: str, fields: dict[str, Any]) -> None:
                 late_minutes   = MAX(late_minutes, ?),
                 terminal_calls = terminal_calls + ?,
                 error_results  = error_results + ?,
+                observed_calls = observed_calls + ?,
                 tool_mix_json  = COALESCE(?, tool_mix_json),
                 updated_at     = ?
             WHERE day = ?
@@ -300,6 +343,7 @@ def upsert_activity(day: str, fields: dict[str, Any]) -> None:
                 fields.get("late_minutes", 0),
                 fields.get("terminal_calls", 0),
                 fields.get("error_results", 0),
+                fields.get("observed_calls", 0),
                 fields.get("tool_mix_json"),
                 now,
                 day,

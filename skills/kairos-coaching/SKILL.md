@@ -109,6 +109,24 @@ not:
 - **Open threads at stop** is a neutral fact with no implied valence. If it
   turns out to correlate with *better* sleep for this user, say that.
 
+### The failed-call rate is not a correlation
+
+`failed_calls_after_sleep` (in `kairos_activity` and alongside the report) is
+descriptive: the share of tool calls that failed on the day *after* each
+logged night, short nights against long. It has no coefficient, no interval
+and no verdict, so the verdict table above does not apply to it.
+
+Say "failed tool calls", never "mistakes", "errors you made", or anything
+about sharpness, judgement or focus. The underlying test is a substring
+heuristic over result text, so it counts deliberate probes, greps that match
+nothing and expected non-zero exits. Quote the two percentages with their
+`n`, say it is an observation, and stop there — no direction, no advice
+attached.
+
+When `status` is `NOT_ENOUGH_OBSERVED_DAYS`, give the `note` as-is. Days
+before Kairos was installed have an *unknown* failure count, not a zero one,
+and must never be described as clean or error-free.
+
 Note that "worked late" against "slept less" is close to circular — if they
 were working at 3am they were not asleep at 3am. Don't present it as a
 discovery.

@@ -123,7 +123,14 @@ def register(ctx):  # noqa: C901
 
             now = _dt.datetime.now()
             night = _activity.night_of(now.timestamp())
-            fields = {"tool_calls": 1, "last_activity": now.timestamp()}
+            # observed_calls is the denominator for error_results: this hook
+            # is the only place either number can be known, because state.db
+            # keeps no result text to inspect.
+            fields = {
+                "tool_calls": 1,
+                "observed_calls": 1,
+                "last_activity": now.timestamp(),
+            }
             if tool_name in ("terminal", "execute_code"):
                 fields["terminal_calls"] = 1
             if errored:

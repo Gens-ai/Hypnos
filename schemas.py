@@ -74,9 +74,11 @@ KAIROS_ACTIVITY = {
     "name": "kairos_activity",
     "description": (
         "Show the user's own work pattern derived from Hermes's session history: "
-        "hour-of-day histogram, how much activity falls after 23:00, and per-night "
-        "intensity. Read-only. Use when asked 'when do I actually work?' or before "
-        "a sleep report."
+        "hour-of-day histogram, how much activity falls after 23:00, per-night "
+        "intensity, and the share of tool calls that failed on the day after each "
+        "logged night. That last one is a plain observation, never a correlation "
+        "and never evidence about anyone's judgement. Read-only. Use when asked "
+        "'when do I actually work?' or before a sleep report."
     ),
     "parameters": {
         "type": "object",

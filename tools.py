@@ -166,6 +166,11 @@ def kairos_activity(params: dict, **_kw: Any) -> str:
     night_share = (
         sum(v for h, v in hist.items() if h >= 23 or h < 5) / total if total else 0.0
     )
+    # Descriptive only, and kept out of kairos_report's correlation family on
+    # purpose — see activity.failures_after_sleep.
+    failures = _activity.failures_after_sleep(
+        _storage.list_sleep(limit=max(days, 90)), rows
+    )
 
     return _ok(
         days_scanned=days,
@@ -178,6 +183,8 @@ def kairos_activity(params: dict, **_kw: Any) -> str:
             f"23:00 and 05:00"
             + (f", peaking at {peak:02d}:00." if peak is not None else ".")
         ),
+        failed_calls_after_sleep=failures,
+        failed_call_rate_by_day=_activity.failed_call_rates(rows)[-14:],
         recent=rows[:14],
     )
 
@@ -195,6 +202,10 @@ def kairos_report(params: dict, **_kw: Any) -> str:
     sleep_rows = _storage.list_sleep(limit=days)
     act_rows = _storage.list_activity(limit=days)
     result = _analysis.analyze(sleep_rows, act_rows)
+    # Descriptive companion, deliberately NOT a member of the correlation
+    # family: lagged pairing (night N -> day N+1), a rate rather than a
+    # count, and only days the live hook actually watched.
+    fa = _activity.failures_after_sleep(sleep_rows, act_rows)
 
     if params.get("format") == "text":
         hist = _activity.hour_histogram(days=days)
@@ -217,9 +228,26 @@ def kairos_report(params: dict, **_kw: Any) -> str:
                     lines.append(f"      {c['detail']}")
             else:
                 lines.append(f"  [{c['verdict']}] {c['label']}")
-        return _ok(report="\n".join(lines), **result)
 
-    return _ok(**result)
+        # Descriptive, below the correlation block and visibly separate from
+        # it: this number carries no interval and is not part of the
+        # Bonferroni family above.
+        lines += ["", "Failed tool calls the day after (observation, not a correlation):"]
+        if fa.get("status") == "OBSERVED":
+            s, lo = fa["shorter_nights"], fa["longer_nights"]
+            lines += [
+                f"  after shorter nights (mean {s['mean_sleep_min']:.0f} min, "
+                f"n={s['n']}): {s['mean_failure_rate'] * 100:.1f}% of calls failed",
+                f"  after longer nights  (mean {lo['mean_sleep_min']:.0f} min, "
+                f"n={lo['n']}): {lo['mean_failure_rate'] * 100:.1f}% of calls failed",
+                "  No interval, no direction claimed. Failures include probes",
+                "  and expected non-zero exits.",
+            ]
+        else:
+            lines.append(f"  {fa.get('note', 'not enough observed days')}")
+        return _ok(report="\n".join(lines), failed_calls_after_sleep=fa, **result)
+
+    return _ok(failed_calls_after_sleep=fa, **result)
 
 
 # ------------------------------------------------------- kairos_guard

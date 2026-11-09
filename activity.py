@@ -162,7 +162,11 @@ def scan_state_db(days: int = 90) -> dict[str, dict[str, Any]]:
         rec["late_minutes"] = _late_minutes(stamps)
         rec["session_count"] = len(sessions_seen[n])
         rec["tool_mix_json"] = json.dumps(dict(tool_mix[n].most_common(12)))
-        rec["error_results"] = 0  # live hook fills this; state.db has no result text
+        # Known-unknown, NOT "no errors": state.db stores no result text, so
+        # nothing here was ever inspected for failure. observed_calls stays 0
+        # for this day too, which is what marks the rate as unknown rather
+        # than clean. Never report an error rate off a backfilled day.
+        rec["error_results"] = 0
 
     return per_night
 
@@ -230,3 +234,127 @@ def hour_histogram(days: int = 90) -> dict[int, int]:
         _dt.datetime.fromtimestamp(r[0]).hour for r in rows
     )
     return {h: hist.get(h, 0) for h in range(24)}
+
+
+# ------------------------------------------------- failed-call rate (descriptive)
+
+# Below this many observed calls a day's failure rate is noise: one failed
+# call out of three is 33% and means nothing.
+MIN_OBSERVED_CALLS = 20
+# Each side of the split needs this many days before the two are compared.
+MIN_DAYS_PER_SIDE = 3
+
+
+def failed_call_rates(activity_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Per-day failure rate, for days the live hook actually watched.
+
+    Deliberately NOT a correlate. `error_results` counts tool results whose
+    text matched a failure heuristic (see `_is_error`), which includes
+    deliberate probes, greps that matched nothing and expected non-zero
+    exits. It is "failed tool calls", never "mistakes", and it is reported
+    as an observation rather than fed to `analysis.analyze()`.
+    """
+    out = []
+    for r in activity_rows:
+        observed = int(r.get("observed_calls") or 0)
+        if observed < MIN_OBSERVED_CALLS:
+            continue
+        errs = int(r.get("error_results") or 0)
+        out.append(
+            {
+                "day": r["day"],
+                "observed_calls": observed,
+                "failed_calls": errs,
+                "failure_rate": round(errs / observed, 4),
+            }
+        )
+    out.sort(key=lambda d: d["day"])
+    return out
+
+
+def _next_day(day: str) -> str:
+    return (
+        _dt.date.fromisoformat(day) + _dt.timedelta(days=1)
+    ).isoformat()
+
+
+def failures_after_sleep(
+    sleep_rows: list[dict[str, Any]], activity_rows: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Failure rate on the day AFTER each logged night, short nights vs long.
+
+    The lag is the whole point. `analysis.pair_nights` joins a night's sleep
+    to the activity that came *before* it, which can only speak to what
+    preceded the sleep. "Short night, then what?" needs night N against day
+    N+1, so it gets its own pairing and stays out of the correlation report
+    and its Bonferroni family.
+
+    Descriptive only: two means and their counts. No coefficient, no
+    interval, no verdict, and no claim that one causes the other.
+    """
+    rates = {d["day"]: d for d in failed_call_rates(activity_rows)}
+    paired = []
+    for s in sleep_rows:
+        nxt = rates.get(_next_day(s["night"]))
+        if nxt:
+            paired.append({"night": s["night"], "duration_min": int(s["duration_min"]), **nxt})
+
+    total_days_observed = len(rates)
+    base: dict[str, Any] = {
+        "paired_days": len(paired),
+        "days_observed": total_days_observed,
+        "days_unobserved": sum(
+            1
+            for r in activity_rows
+            if int(r.get("observed_calls") or 0) < MIN_OBSERVED_CALLS
+        ),
+        "min_observed_calls": MIN_OBSERVED_CALLS,
+        "min_days_per_side": MIN_DAYS_PER_SIDE,
+    }
+
+    if len(paired) < MIN_DAYS_PER_SIDE * 2:
+        base.update(
+            {
+                "status": "NOT_ENOUGH_OBSERVED_DAYS",
+                "note": (
+                    f"{len(paired)} night(s) are followed by a day with at least "
+                    f"{MIN_OBSERVED_CALLS} watched tool calls. "
+                    f"{MIN_DAYS_PER_SIDE * 2} are needed before a short-night day "
+                    "and a long-night day can be compared at all. Days before "
+                    "Kairos was installed cannot be used: Hermes keeps no tool "
+                    "result text, so their failure count is unknown, not zero."
+                ),
+            }
+        )
+        return base
+
+    paired.sort(key=lambda p: p["duration_min"])
+    half = len(paired) // 2
+    short, long_ = paired[:half], paired[len(paired) - half :]
+
+    def _mean(rows: list[dict[str, Any]], key: str) -> float:
+        return sum(r[key] for r in rows) / len(rows)
+
+    base.update(
+        {
+            "status": "OBSERVED",
+            "shorter_nights": {
+                "n": len(short),
+                "mean_sleep_min": round(_mean(short, "duration_min"), 1),
+                "mean_failure_rate": round(_mean(short, "failure_rate"), 4),
+            },
+            "longer_nights": {
+                "n": len(long_),
+                "mean_sleep_min": round(_mean(long_, "duration_min"), 1),
+                "mean_failure_rate": round(_mean(long_, "failure_rate"), 4),
+            },
+            "note": (
+                "Failure rate on the day after each logged night, split at the "
+                "median. An observation about tool calls on single-subject data, "
+                "not a correlation and not a statement about anyone's judgement. "
+                "The heuristic counts deliberate probes and expected non-zero "
+                "exits as failures."
+            ),
+        }
+    )
+    return base

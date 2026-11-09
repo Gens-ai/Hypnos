@@ -255,6 +255,39 @@ weren't asleep at 3am. The number worth having is one that isn't:
 **Spread beats earliness.** A reliable 02:00 does more for you than a 23:00
 that swings by two hours, so the variance is the target rather than the mean.
 
+## The one it reports without a coefficient
+
+"Do I make more mistakes when I'm short on sleep" is the question people
+actually want answered, and it is the one where this plugin is most likely to
+lie to you. Kairos answers a narrower version of it, on purpose.
+
+It shows the share of tool calls that **failed** on the day after each logged
+night, split at your median night:
+
+```
+Failed tool calls the day after (observation, not a correlation):
+  after shorter nights (mean 294 min, n=7): 11.4% of calls failed
+  after longer nights  (mean 476 min, n=7): 6.2% of calls failed
+```
+
+Four things that number is not. It is **not a correlation** — no coefficient,
+no interval, and it stays out of the corrected family above, so it costs the
+five real features none of their sensitivity. It is **not mistakes** — the
+failure test is a heuristic over result text, so deliberate probes, greps that
+match nothing and expected non-zero exits all count. It is **not causal**, and
+the arrow could as easily run backwards or through a hard day's work sitting
+upstream of both. And it is **not built out of your history**: Hermes stores
+no tool result text, so a day before Kairos was installed has an unknown
+failure count, not a clean one. Those days are dropped rather than scored as
+zero, which is why this takes weeks to say anything and says so plainly
+meanwhile.
+
+It needs 20 watched calls in a day before that day counts at all, and three
+days either side of the median before it will compare them.
+
+**Spread beats earliness** is still the number worth having. This one is an
+observation you are free to ignore.
+
 ## Tools
 
 | Tool | What it does |
@@ -265,7 +298,7 @@ that swings by two hours, so the variance is the target rather than the mean.
 | `kairos_checkin` | The one morning question. |
 | `sleep_log` | Log a night. Takes `7h20m`, `6.5h`, `7:20`, `400m`. |
 | `sleep_import` | Import sleep — a Xiaomi/Mi Fitness export, a Gadgetbridge database, or any CSV. Format sniffed. `probe` shows what parsed and writes nothing. |
-| `kairos_activity` | Your work pattern, out of Hermes's own history. |
+| `kairos_activity` | Your work pattern, out of Hermes's own history. Includes the failed-call rate after short nights. |
 | `kairos_report` | The honest correlation. `format="text"` for the chart. |
 | `kairos_guard` | Quiet-hours guard on destructive work. Off unless you say so. |
 | `kairos_wearable` | Read sleep from a health MCP server you already run. |
