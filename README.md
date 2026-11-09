@@ -430,18 +430,35 @@ evaluates its gates, finds itself outside every rung, and returns
 
 So pick the shape that matches your setup:
 
-| Your setup | What actually reaches you |
+| Your setup | What reaches you |
 |---|---|
-| Laptop, closed when you leave it | The in-session nudge. The ping fires only when the machine happens to be awake, and silently skips when it isn't. |
-| Desktop or laptop left on | The ping works as described, `--deliver local` or to a messaging channel. |
-| Hermes on an always-on box (server, Pi, VPS) | The real version: the ping runs every night regardless of what your laptop is doing, delivered to your phone. |
+| Desktop, or a laptop left on | The ping, as described. `--deliver local`, or a messaging channel to reach your phone. |
+| Laptop you shut when you leave | The in-session nudge. The ping fires on the nights the machine is awake and silently skips the rest. |
 
-If you only ever run Hermes on a laptop you shut, treat the in-session nudge
-as the feature and the ping as a bonus for the nights you're still at the
-desk. Nothing breaks either way; it simply stays quiet.
+**The obvious fix is the wrong one.** You could install Kairos on an always-on
+box and run the ping there, and it would fire every night. Don't. Everything
+Kairos knows lives in that machine's own `plugin-data/kairos/`, and two
+instances share nothing — but the state isn't really the problem. The problem
+is that an instance on a server *wasn't in the room*.
 
-Both delivery paths share one `nudge_log`, so the spacing rule holds across
-them. You will not get a desktop notification and an in-chat nudge for the
+It has no sessions to read, so `stop_state` comes back unobserved and the
+nudge degrades to "it's past your mark" with nothing behind it. It has none of
+your sleep history. Worst of all, the replies land in the wrong place: say
+"not tonight" and you snooze the server's log while your laptop's is untouched
+and still due, and ask it to write up where you got to and it has nothing to
+write, because it never saw the work.
+
+The ping is not a notification, it is the opening of a conversation, and the
+conversation only works where the work happened. **Run it on the machine you
+actually work on, or don't run it.** A Kairos that wasn't there is an alarm
+clock, which is the one thing this is trying not to be.
+
+Which makes a quiet night the correct outcome rather than a gap: if the
+machine that does your work is asleep, there is nothing to call you away
+from.
+
+Both delivery paths share a single `nudge_log`, so the spacing rule holds
+across them: you will not get a scheduled ping and an in-chat nudge for the
 same moment. The ping has its own switch in settings, so you can silence it
 without going back to hunt down the cron job.
 
