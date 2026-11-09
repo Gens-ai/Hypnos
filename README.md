@@ -56,6 +56,59 @@ where it stopped, the obvious next move. The moment passes whether or not you
 were ready for it, which is a terrible property in a note-taking system, so
 the file goes on disk.
 
+## Two other moments it watches for
+
+A bedtime is one opportune moment. The name implies the rest, and two more
+are wired in. Both follow the same rules as the wind-down: they offer, they
+end on a question, and they report what was observed rather than what it
+concluded about you.
+
+**The note you left yourself.** Kairos writes down where the work got to when
+you stop. For a while nothing handed it back, which made the feature half of
+a promise. Now the most recent note is offered once, on the first turn of a
+later session, and then marked seen:
+
+```
+> ○  you left yourself a note last night
+>
+> Left the Gadgetbridge parser half-done: kind histogram works, night
+> reassembly does not.
+>
+> · that's where we stopped. Pick it up, or say "fresh start".
+```
+
+It stays quiet if the note is older than 36 hours, if it has already been
+handed back, or if it belongs to a session that never actually ended.
+
+**The work has stopped moving.** Four or more failed tool calls inside 25
+minutes, and at least half of recent calls failing, is a measurable fact
+about the work. Going in circles happens at two in the afternoon as readily
+as at two in the morning, and at two in the afternoon a bedtime has nothing
+to do with it:
+
+```
+> ○  nothing to do with the hour — just the work
+>
+> 6 failed calls in a row here, mostly `terminal`.
+>
+> That is often the point where stepping away beats another attempt.
+> I can write down where this got to to make picking it up cheap.
+> Want me to?
+>
+> · say "keep going" and I'll drop it
+```
+
+Note what it does not say. It does not say you are stuck, frustrated, tired,
+or going round in circles — those are conclusions about a person drawn from a
+number about some tool calls. It reports the count and makes an offer.
+
+It is deliberately hard to trigger: a false positive interrupts someone who
+is working fine, which is the exact failure this plugin exists to avoid. Six
+calls minimum before it will judge a session at all, twice a night maximum,
+ninety minutes between mentions, silent at tone `off` or when snoozed. And
+it says nothing inside the wind-down's own window, so you are never handed
+two different things to answer in one turn.
+
 ## Your agent was there
 
 That last part is only possible because of where this runs. Every other sleep

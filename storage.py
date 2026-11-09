@@ -104,6 +104,23 @@ CREATE TABLE IF NOT EXISTS checkins (
     answered_at REAL,
     answer    TEXT
 );
+
+-- Opportune moments other than bedtime (a suggested break, a handoff
+-- recalled). One row per thing said, so each has its own cooldown and
+-- nothing is said twice.
+CREATE TABLE IF NOT EXISTS moment_log (
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind  TEXT NOT NULL,
+    night TEXT NOT NULL,
+    at    REAL NOT NULL
+);
+
+-- Which handoffs have already been handed back, so last night's note is
+-- offered once rather than every session until it ages out.
+CREATE TABLE IF NOT EXISTS handoff_seen (
+    night TEXT PRIMARY KEY,
+    at    REAL NOT NULL
+);
 """
 
 
@@ -475,6 +492,73 @@ def record_outcome(tool_name: str, error: bool) -> None:
 
 def recent_outcomes() -> list[dict[str, Any]]:
     return list(_OUTCOMES)
+
+
+# -------------------------------------------------------------- moments
+
+
+def last_moment_at(kind: str, night: str) -> Optional[float]:
+    """When this kind of moment was last raised tonight."""
+    con = connect()
+    row = con.execute(
+        "SELECT MAX(at) FROM moment_log WHERE kind = ? AND night = ?", (kind, night)
+    ).fetchone()
+    return float(row[0]) if row and row[0] is not None else None
+
+
+def moment_count(kind: str, night: str) -> int:
+    con = connect()
+    row = con.execute(
+        "SELECT COUNT(*) FROM moment_log WHERE kind = ? AND night = ?", (kind, night)
+    ).fetchone()
+    return int(row[0]) if row else 0
+
+
+def record_moment(kind: str, night: str) -> None:
+    con = connect()
+    con.execute(
+        "INSERT INTO moment_log (kind, night, at) VALUES (?, ?, ?)",
+        (kind, night, _dt.datetime.now().timestamp()),
+    )
+    con.commit()
+
+
+def handoff_was_seen(night: str) -> bool:
+    con = connect()
+    row = con.execute(
+        "SELECT 1 FROM handoff_seen WHERE night = ?", (night,)
+    ).fetchone()
+    return row is not None
+
+
+def mark_handoff_seen(night: str) -> None:
+    con = connect()
+    con.execute(
+        "INSERT OR REPLACE INTO handoff_seen (night, at) VALUES (?, ?)",
+        (night, _dt.datetime.now().timestamp()),
+    )
+    con.commit()
+
+
+def latest_handoff() -> Optional[tuple[str, str, float]]:
+    """The most recent handoff on disk as (night, text, written_at)."""
+    from plugins.plugin_storage import plugin_data_dir  # noqa: PLC0415
+
+    d = plugin_data_dir(PLUGIN_NAME) / "handoffs"
+    if not d.exists():
+        return None
+    best: Optional[tuple[str, str, float]] = None
+    for f in d.glob("*.md"):
+        try:
+            mtime = f.stat().st_mtime
+        except OSError:
+            continue
+        if best is None or mtime > best[2]:
+            try:
+                best = (f.stem, f.read_text(encoding="utf-8"), mtime)
+            except OSError:
+                continue
+    return best
 
 
 # ------------------------------------------------------------- handoff

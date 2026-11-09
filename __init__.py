@@ -31,13 +31,14 @@ from . import activity as _activity
 from . import coach_schemas as _cschemas
 from . import coach_tools as _ctools
 from . import goals as _goals
+from . import moments as _moments
 from . import schemas as _schemas
 from . import storage as _storage
 from . import tools as _tools
 from . import wearable_tools as _wtools
 from . import winddown as _winddown
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 # Tools that can lose work or touch the outside world. The quiet-hours guard
 # only ever considers these; everything else is untouched at every tone.
@@ -98,9 +99,15 @@ def register(ctx):  # noqa: C901
         )
 
     # ----------------------------------------------------------- hooks
+    # Set on session start, cleared once the handoff has been offered. A
+    # handoff is something you come back to, so it belongs on the first turn
+    # of a later session and nowhere else.
+    _fresh_session = {"value": True}
+
     def on_session_start(**kwargs):
         """Refresh the activity table so a report is never stale."""
         del kwargs
+        _fresh_session["value"] = True
         try:
             _activity.sync_activity(days=90)
         except Exception:  # never break session startup
@@ -130,6 +137,54 @@ def register(ctx):  # noqa: C901
         except Exception:
             pass
 
+    def _other_moments():
+        """Moments that are not bedtime. Only reached when no nudge is due.
+
+        Order matters: a handoff is a greeting and a break is an
+        interruption, so the greeting goes first and only one is ever
+        returned. Two prompts in one turn is how a plugin gets muted.
+        """
+        # 1. the note the last session left you, once, on the way in
+        if _fresh_session["value"]:
+            try:
+                hand = _moments.pending_handoff()
+            except Exception:
+                hand = None
+            _fresh_session["value"] = False
+            if hand:
+                _storage.mark_handoff_seen(hand["night"])
+                return {
+                    "context": (
+                        "[Kairos] The user left themselves this note when they "
+                        "stopped. Deliver the block below verbatim as its own "
+                        "quoted block before anything else, then wait. Do not "
+                        "summarise it, do not add encouragement, and do not "
+                        "assume they want to continue that work.\n\n"
+                        + hand["text"]
+                    )
+                }
+
+        # 2. the work has stopped moving forward
+        try:
+            brk = _moments.should_suggest_break(recent=_storage.recent_outcomes())
+        except Exception:
+            brk = None
+        if brk:
+            _storage.record_moment("break", brk["night"])
+            return {
+                "context": (
+                    "[Kairos] Deliver the block below to the user verbatim, as "
+                    "its own quoted block, before anything else you say. This "
+                    "is about the work, not the hour and not the user: do not "
+                    "mention bedtime, do not suggest they are tired, frustrated "
+                    "or struggling, and do not diagnose why the failures are "
+                    "happening. If they decline or say anything like 'keep "
+                    "going', drop the subject and do not raise it again this "
+                    "session.\n\n" + brk["text"]
+                )
+            }
+        return None
+
     def pre_llm_call(**kwargs):
         """Deliver the wind-down nudge between turns, never mid-tool-chain.
 
@@ -140,7 +195,7 @@ def register(ctx):  # noqa: C901
         try:
             due = _winddown.should_nudge(recent=_storage.recent_outcomes())
             if not due:
-                return None
+                return _other_moments()
             _storage.record_nudge(due["night"], due["rung"])
 
             if _goals.get_goals().get("nudge_delivery") in ("notify", "both"):
