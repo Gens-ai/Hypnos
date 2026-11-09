@@ -28,8 +28,15 @@ RUNGS: tuple[tuple[str, int, int], ...] = (
     ("runway", -120, -45),   # plenty of time left
     ("approach", -45, -5),   # closing in
     ("target", -5, 60),      # at it
-    ("past", 60, 10_000),    # well beyond
+    ("past", 60, 180),       # well beyond, but still tonight
 )
+
+# A bedtime stops being worth mentioning once the night it belonged to is
+# over. Without an upper bound on 'past' the rung ran for 10,000 minutes --
+# a week -- so a laptop opened at 10am would deliver last night's nudge, and
+# a cron catch-up after a closed lid would fire hours into the next day.
+# Three hours past your own mark is the limit of relevance.
+PAST_LIMIT_MIN = 180
 
 # Which rungs each tone is allowed to speak on.
 TONE_RUNGS: dict[str, frozenset[str]] = {

@@ -372,12 +372,12 @@ Imported nights are tagged `mcp:<server>` so the source of every number stays
 visible, and implausible rows (under 30 minutes, over 18 hours) are dropped
 rather than averaged in.
 
-## Being useful when you've shut the laptop
+## Being useful when you're not in a session
 
 The in-session nudge rides `pre_llm_call`, which only reaches you while
 you're actually talking to Hermes. That is the wrong assumption for a bedtime
-hint: the most likely reason you're awake at 1am and not winding down is that
-you stopped working an hour ago and picked up your phone.
+hint: the most likely reason you're awake at 1am and not winding down is
+that you stopped working an hour ago and picked up your phone.
 
 So `kairos_ping` exists for a scheduled job to call. It evaluates exactly the
 same gates — switched on, target set, tone, snooze, spacing, stage — and
@@ -402,8 +402,43 @@ says anything:
 04:20 .   04:40 .   05:00 .   05:20 .   05:40 .   06:00 .   06:20 .  06:40 .
 ```
 
-Point `--deliver` at a messaging channel instead and it reaches your phone,
-which is where you are if the laptop is shut.
+Point `--deliver` at a messaging channel instead and the nudge arrives on your
+phone rather than in a terminal you're not looking at.
+
+### The honest limit: cron needs the machine awake
+
+A cron job is evaluated by Hermes, on the machine Hermes runs on. If that is a
+laptop and the lid is shut, nothing runs — no evaluation, no ping, and
+`--deliver telegram` does not change that, because there is no process awake
+to send it. This is worth being blunt about, since "it reaches you when you're
+not at the keyboard" is the entire point of the feature and it has a hard
+dependency the copy shouldn't hide.
+
+Worse, a scheduler that catches up on missed jobs will fire the moment the
+machine wakes. A bedtime hint delivered at 10am is not a late nudge, it is
+nonsense:
+
+```
+⚠ catch-up after missed fire: scheduled 02:00, ran 16:24 (14h 24m late)
+```
+
+That one is from the author's own cron log. So the `past` rung is bounded at
+three hours after your target: beyond that the night is over and Kairos has
+nothing useful to say about it. A catch-up that lands the next morning
+evaluates its gates, finds itself outside every rung, and returns
+`say_nothing`. The stale nudge is dropped rather than delivered.
+
+So pick the shape that matches your setup:
+
+| Your setup | What actually reaches you |
+|---|---|
+| Laptop, closed when you leave it | The in-session nudge. The ping fires only when the machine happens to be awake, and silently skips when it isn't. |
+| Desktop or laptop left on | The ping works as described, `--deliver local` or to a messaging channel. |
+| Hermes on an always-on box (server, Pi, VPS) | The real version: the ping runs every night regardless of what your laptop is doing, delivered to your phone. |
+
+If you only ever run Hermes on a laptop you shut, treat the in-session nudge
+as the feature and the ping as a bonus for the nights you're still at the
+desk. Nothing breaks either way; it simply stays quiet.
 
 Both delivery paths share one `nudge_log`, so the spacing rule holds across
 them. You will not get a desktop notification and an in-chat nudge for the
