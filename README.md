@@ -430,16 +430,26 @@ evaluates its gates, finds itself outside every rung, and returns
 
 So pick the shape that matches your setup:
 
-| Your setup | What reaches you |
+| Where you are | What reaches you |
 |---|---|
-| Desktop, or a laptop left on | The ping, as described. `--deliver local`, or a messaging channel to reach your phone. |
-| Laptop you shut when you leave | The in-session nudge. The ping fires on the nights the machine is awake and silently skips the rest. |
+| At the machine | The in-session nudge, on `pre_llm_call`. |
+| Away from it, machine still on | The ping — and this is the case worth setting up. Point `--deliver` at a messaging channel and it finds you on your phone, still knowing whether the build is green and what you left half-finished. |
+| Away from it, machine off | Nothing. Nothing informed is possible, and Kairos would rather be quiet than guess. |
 
-**The obvious fix is the wrong one.** You could install Kairos on an always-on
-box and run the ping there, and it would fire every night. Don't. Everything
-Kairos knows lives in that machine's own `plugin-data/kairos/`, and two
-instances share nothing — but the state isn't really the problem. The problem
-is that an instance on a server *wasn't in the room*.
+The middle row is the one that matters. Being away from the keyboard is the
+normal reason you're drifting past your bedtime, and it is fully covered as
+long as the machine you work on is awake — because the thing talking to you is
+the thing that watched you work.
+
+For the third row, the honest answer is that a bare bedtime reminder is not
+this plugin's job. Your phone already has an alarm, and it will do that one
+better than a Hermes install with nothing to say.
+
+**What won't work is a second install.** You could put Kairos on an always-on
+box so the ping always fires, and it would — badly. Everything Kairos knows
+lives in that machine's own `plugin-data/kairos/` and two instances share
+nothing, but the state isn't really the problem. The problem is that an
+instance on a server *wasn't in the room*.
 
 It has no sessions to read, so `stop_state` comes back unobserved and the
 nudge degrades to "it's past your mark" with nothing behind it. It has none of
@@ -449,13 +459,9 @@ and still due, and ask it to write up where you got to and it has nothing to
 write, because it never saw the work.
 
 The ping is not a notification, it is the opening of a conversation, and the
-conversation only works where the work happened. **Run it on the machine you
-actually work on, or don't run it.** A Kairos that wasn't there is an alarm
-clock, which is the one thing this is trying not to be.
-
-Which makes a quiet night the correct outcome rather than a gap: if the
-machine that does your work is asleep, there is nothing to call you away
-from.
+conversation only works where the work happened. **So run it on the machine
+you work on and deliver it anywhere you like.** That split is the useful one:
+the knowing happens where the work is, the telling can reach your pocket.
 
 Both delivery paths share a single `nudge_log`, so the spacing rule holds
 across them: you will not get a scheduled ping and an in-chat nudge for the
