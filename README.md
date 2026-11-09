@@ -34,11 +34,33 @@ The clock knows what time it is and nothing else. It doesn't know whether
 you're mid-thought or finished, whether the build is green, whether you'd
 thank anyone at all for interrupting. This is named after the other one.
 
+## It can tell whether you're at a clean break
+
+A timer can't do this and neither can your watch. Kairos looks at whether the
+work is actually at rest right now, from recent tool failures and uncommitted
+changes, then adapts instead of nagging.
+
+If you're clear:
+
+> *That's your bedtime, and you're at a natural break. I've got the thread —
+> nothing's lost if you head to bed now.*
+
+If you're mid-surgery:
+
+> *That's your bedtime. Land whatever you're mid-way through and I'll note
+> where we end up — it'll be waiting, with fresh eyes on it.*
+
+Nobody stays up out of love for the bug. They stay up because stopping feels
+like losing the thread. So Kairos writes the thread down: what was in flight,
+where it stopped, the obvious next move. The moment passes whether or not you
+were ready for it, which is a terrible property in a note-taking system, so
+the file goes on disk.
+
 ## Your agent was there
 
-This is the part I think is actually new. Every other sleep app is a
-bystander that asks what you did yesterday. Hermes was in the room at 3am,
-handing you the commands, and it has timestamps on all of it.
+That last part is only possible because of where this runs. Every other sleep
+app is a bystander that asks what you did yesterday. Hermes was in the room at
+3am, handing you the commands, and it has timestamps on all of it.
 
 It isn't a witness. It's an accessory. Kairos is what happens when the
 accessory starts taking notes.
@@ -119,28 +141,6 @@ if you want it punctual instead of polite.
 
 Say "not tonight" and it's gone without a word of argument, no second
 attempt, nothing about it in the morning.
-
-## It can tell whether you're at a clean break
-
-A timer can't do this and neither can your watch. Kairos looks at whether the
-work is actually at rest right now, from recent tool failures and uncommitted
-changes, then adapts instead of nagging.
-
-If you're clear:
-
-> *That's your bedtime, and you're at a natural break. I've got the thread —
-> nothing's lost if you head to bed now.*
-
-If you're mid-surgery:
-
-> *That's your bedtime. Land whatever you're mid-way through and I'll note
-> where we end up — it'll be waiting, with fresh eyes on it.*
-
-Nobody stays up out of love for the bug. They stay up because stopping feels
-like losing the thread. So Kairos writes the thread down: what was in flight,
-where it stopped, the obvious next move. The moment passes whether or not you
-were ready for it, which is a terrible property in a note-taking system, so
-the file goes on disk.
 
 ## Early starts, worked backwards
 
