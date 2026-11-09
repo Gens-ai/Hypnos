@@ -168,7 +168,7 @@ class McpSource(SleepSource):
     def requirements(self) -> dict[str, Any]:
         return {
             "server": "MCP server name from mcp.servers, granted in "
-                      "plugins.entries.hypnos.mcp_allowlist.",
+                      "plugins.entries.kairos.mcp_allowlist.",
             "tool": "Tool on that server. Defaults to the preset.",
             "args": "Arguments for that tool. Defaults to the preset.",
             "_ctx": "Injected: the plugin ctx, for call_mcp.",
@@ -194,7 +194,7 @@ class McpSource(SleepSource):
         except PermissionError as exc:
             raise PermissionError(
                 f"Not allowed to call MCP server '{server}'. Grant it in "
-                f"config.yaml under plugins.entries.hypnos.mcp_allowlist, "
+                f"config.yaml under plugins.entries.kairos.mcp_allowlist, "
                 f"then retry. ({exc})"
             ) from exc
         if not isinstance(res, dict) or not res.get("ok"):

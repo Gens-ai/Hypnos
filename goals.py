@@ -3,7 +3,7 @@
 Design rule that governs this whole module: **there is no correct bedtime.**
 A 02:30 target is as legitimate as a 22:00 one. Many people who use Hermes
 have no boss and no clock-in, and shifting your whole day later is a valid
-way to live. Hypnos only ever measures you against the target *you* set.
+way to live. Kairos only ever measures you against the target *you* set.
 
 What it does care about:
   * hitting your own target
@@ -44,7 +44,7 @@ DEFAULTS: dict[str, str] = {
     "wearable_tool": "",
     "wearable_args": "{}",
     "wearable_last_sync": "",
-    # --- out-of-session evening ping (a cron job calls hypnos_ping)
+    # --- out-of-session evening ping (a cron job calls kairos_ping)
     "ping_enabled": "false",
     "ping_every_min": "30",
     "ping_channel": "desktop",
@@ -159,7 +159,7 @@ def resolve_target(night: str) -> dict[str, Any]:
     """The bedtime that applies to one night, and why.
 
     Returns source='none' when the user has set no target. In that case
-    Hypnos stays silent — it will not invent a bedtime for someone.
+    Kairos stays silent — it will not invent a bedtime for someone.
     """
     g = get_goals()
     duration = int(g.get("target_duration_min") or 450)
@@ -174,7 +174,7 @@ def resolve_target(night: str) -> dict[str, Any]:
         "tone": g.get("tone", "gentle"),
     }
     if not base:
-        out["reason"] = "No target set. Hypnos stays quiet until you choose one."
+        out["reason"] = "No target set. Kairos stays quiet until you choose one."
         return out
 
     # An obligation the next morning overrides the night's target.

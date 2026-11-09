@@ -1,6 +1,6 @@
 """One normalizer and one write path, shared by every sleep bridge.
 
-Every source Hypnos will ever read \u2014 a CSV, an MCP health server, a
+Every source Kairos will ever read \u2014 a CSV, an MCP health server, a
 Gadgetbridge SQLite export, some future vendor API \u2014 ends with the same
 question: is this a plausible night, and may it overwrite what the user
 already told us? Answering that in each adapter is how the CSV importer

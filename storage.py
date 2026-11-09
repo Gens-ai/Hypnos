@@ -1,4 +1,4 @@
-"""Hypnos storage — schema + accessors.
+"""Kairos storage — schema + accessors.
 
 All state lives in the per-plugin data root so it survives
 `hermes plugins update` / `remove` and follows the active profile.
@@ -10,7 +10,7 @@ import datetime as _dt
 import sqlite3
 from typing import Any, Optional
 
-PLUGIN_NAME = "hypnos"
+PLUGIN_NAME = "kairos"
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS sleep (
@@ -165,7 +165,7 @@ def upsert_sleep(
     """Write a night. Returns {status, previous} rather than silently winning.
 
     ``protect_manual`` is for automated importers: a wearable must never
-    overwrite something you told Hypnos yourself. You know whether you lay
+    overwrite something you told Kairos yourself. You know whether you lay
     awake for an hour; the watch is guessing. The incoming row is reported as
     skipped, with the disagreement, so the caller can surface it.
     """

@@ -1,7 +1,7 @@
 """Activity sensor — derive daily work-pattern features from Hermes's own session store.
 
 Read-only. Opens `state.db` with `mode=ro` and never writes to it.
-This is the half of Hypnos that makes it unusual: the agent's own
+This is the half of Kairos that makes it unusual: the agent's own
 telemetry becomes a lifestyle sensor.
 """
 

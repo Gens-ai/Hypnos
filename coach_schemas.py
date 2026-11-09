@@ -1,11 +1,11 @@
-"""Hypnos tool schemas (coaching surface)."""
+"""Kairos tool schemas (coaching surface)."""
 
-HYPNOS_GOAL = {
-    "name": "hypnos_goal",
+KAIROS_GOAL = {
+    "name": "kairos_goal",
     "description": (
         "Read or set the user's own sleep targets: bedtime, duration, an optional "
         "gradual-shift goal, tone, and morning check-in. There is no correct "
-        "bedtime — 02:30 is as valid as 22:00, and Hypnos stays silent until the "
+        "bedtime — 02:30 is as valid as 22:00, and Kairos stays silent until the "
         "user sets one. Use when they describe what they want their sleep to look "
         "like ('I want to be in bed by 1', 'aiming for 8 hours')."
     ),
@@ -29,7 +29,7 @@ HYPNOS_GOAL = {
                 "type": "string",
                 "description": (
                     "An eventual bedtime to drift toward, 'HH:MM'. Combined with "
-                    "start_ramp, Hypnos moves the target gradually."
+                    "start_ramp, Kairos moves the target gradually."
                 ),
             },
             "ramp_min_per_week": {
@@ -57,11 +57,11 @@ HYPNOS_GOAL = {
     },
 }
 
-HYPNOS_COMMITMENT = {
-    "name": "hypnos_commitment",
+KAIROS_COMMITMENT = {
+    "name": "kairos_commitment",
     "description": (
         "Record or clear something that genuinely needs an early start — a flight, "
-        "a trip, an appointment. Hypnos works backwards from the wake time and "
+        "a trip, an appointment. Kairos works backwards from the wake time and "
         "eases the bedtime shift over the nights beforehand, then returns to the "
         "user's normal target. Use when they mention upcoming plans with a time "
         "('flight at 7 on Saturday', 'need to be up at 6 Tuesday')."
@@ -92,8 +92,8 @@ HYPNOS_COMMITMENT = {
     },
 }
 
-HYPNOS_WINDDOWN = {
-    "name": "hypnos_winddown",
+KAIROS_WINDDOWN = {
+    "name": "kairos_winddown",
     "description": (
         "Check whether a wind-down nudge is due right now, mute tonight, or save "
         "the current thread so the user can stop cleanly. Call with "
@@ -119,8 +119,8 @@ HYPNOS_WINDDOWN = {
     },
 }
 
-HYPNOS_CHECKIN = {
-    "name": "hypnos_checkin",
+KAIROS_CHECKIN = {
+    "name": "kairos_checkin",
     "description": (
         "Run or answer the morning check-in: one question, never a questionnaire. "
         "It never opens with a missed target — it asks how they slept. Use "
@@ -143,14 +143,14 @@ HYPNOS_CHECKIN = {
 }
 
 
-HYPNOS_WEARABLE = {
-    "name": "hypnos_wearable",
+KAIROS_WEARABLE = {
+    "name": "kairos_wearable",
     "description": (
         "Read sleep from a health MCP server the user already runs (Oura, "
         "WHOOP, Garmin, Apple Health and so on) instead of typing nights in "
-        "by hand. Hypnos writes no vendor integrations: it calls a server the "
-        "operator has granted in plugins.entries.hypnos.mcp_allowlist. Use "
-        "action='presets' to see known servers, 'configure' to point Hypnos "
+        "by hand. Kairos writes no vendor integrations: it calls a server the "
+        "operator has granted in plugins.entries.kairos.mcp_allowlist. Use "
+        "action='presets' to see known servers, 'configure' to point Kairos "
         "at one, 'probe' to check it parses before writing anything, and "
         "'sync' to import. Manual entries are never overwritten."
     ),
@@ -179,8 +179,8 @@ HYPNOS_WEARABLE = {
     },
 }
 
-HYPNOS_PING = {
-    "name": "hypnos_ping",
+KAIROS_PING = {
+    "name": "kairos_ping",
     "description": (
         "Check whether a wind-down nudge is due right now, for delivery "
         "outside a conversation. Intended for a cron job: the in-session hook "

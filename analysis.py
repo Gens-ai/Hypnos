@@ -110,7 +110,7 @@ def analyze(
                 "verdict": "INSUFFICIENT_EVIDENCE",
                 "message": (
                     f"Only {n} night(s) have both sleep and activity data. "
-                    f"Hypnos needs at least {MIN_PAIRS} before it will report a "
+                    f"Kairos needs at least {MIN_PAIRS} before it will report a "
                     f"correlation, and about {DECENT_PAIRS} before the number is worth "
                     f"acting on. Log {MIN_PAIRS - n} more night(s)."
                 ),

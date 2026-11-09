@@ -3,7 +3,7 @@
 SLEEP_LOG = {
     "name": "sleep_log",
     "description": (
-        "Record one night's sleep for Hypnos. Use when the user mentions how "
+        "Record one night's sleep for Kairos. Use when the user mentions how "
         "they slept ('slept about 6 hours', 'woke up twice, feel rough'). Accepts "
         "fuzzy durations like '7h20m', '6.5h' or '7:20'. Defaults to last night."
     ),
@@ -70,8 +70,8 @@ SLEEP_IMPORT = {
     },
 }
 
-HYPNOS_ACTIVITY = {
-    "name": "hypnos_activity",
+KAIROS_ACTIVITY = {
+    "name": "kairos_activity",
     "description": (
         "Show the user's own work pattern derived from Hermes's session history: "
         "hour-of-day histogram, how much activity falls after 23:00, and per-night "
@@ -89,8 +89,8 @@ HYPNOS_ACTIVITY = {
     },
 }
 
-HYPNOS_REPORT = {
-    "name": "hypnos_report",
+KAIROS_REPORT = {
+    "name": "kairos_report",
     "description": (
         "Correlate logged sleep against work-pattern features and report only what "
         "the sample supports. Returns INSUFFICIENT_EVIDENCE rather than a guess "
@@ -109,8 +109,8 @@ HYPNOS_REPORT = {
     },
 }
 
-HYPNOS_GUARD = {
-    "name": "hypnos_guard",
+KAIROS_GUARD = {
+    "name": "kairos_guard",
     "description": (
         "Inspect or configure the quiet-hours guard, which asks for confirmation "
         "(or refuses) on risky operations during the user's declared sleep window. "

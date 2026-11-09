@@ -30,10 +30,10 @@ def _valid_hhmm(v: str) -> bool:
     return 0 <= h <= 23 and 0 <= m <= 59
 
 
-# ------------------------------------------------------------ hypnos_goal
+# ------------------------------------------------------------ kairos_goal
 
 
-def hypnos_goal(params: dict, **_kw: Any) -> str:
+def kairos_goal(params: dict, **_kw: Any) -> str:
     action = (params.get("action") or "get").lower()
 
     if action == "get":
@@ -86,10 +86,10 @@ def hypnos_goal(params: dict, **_kw: Any) -> str:
     return _ok(goals=g, tonight=_goals.resolve_target(night))
 
 
-# ------------------------------------------------------ hypnos_commitment
+# ------------------------------------------------------ kairos_commitment
 
 
-def hypnos_commitment(params: dict, **_kw: Any) -> str:
+def kairos_commitment(params: dict, **_kw: Any) -> str:
     action = (params.get("action") or "list").lower()
 
     if action == "list":
@@ -135,10 +135,10 @@ def hypnos_commitment(params: dict, **_kw: Any) -> str:
                note="Normal target resumes the night after.")
 
 
-# -------------------------------------------------------- hypnos_winddown
+# -------------------------------------------------------- kairos_winddown
 
 
-def hypnos_winddown(params: dict, **_kw: Any) -> str:
+def kairos_winddown(params: dict, **_kw: Any) -> str:
     action = (params.get("action") or "status").lower()
     now = _dt.datetime.now()
     night = _activity.night_of(now.timestamp())
@@ -162,7 +162,7 @@ def hypnos_winddown(params: dict, **_kw: Any) -> str:
     target = _goals.resolve_target(night)
     if target["source"] == "none":
         return _ok(nudge=None, target=target,
-                   note="No target set, so Hypnos stays quiet.")
+                   note="No target set, so Kairos stays quiet.")
 
     due = _winddown.should_nudge(now=now, recent=_storage.recent_outcomes())
     return _ok(
@@ -174,10 +174,10 @@ def hypnos_winddown(params: dict, **_kw: Any) -> str:
     )
 
 
-# --------------------------------------------------------- hypnos_checkin
+# --------------------------------------------------------- kairos_checkin
 
 
-def hypnos_checkin(params: dict, **_kw: Any) -> str:
+def kairos_checkin(params: dict, **_kw: Any) -> str:
     action = (params.get("action") or "ask").lower()
     # The check-in asks about last night, which ended this morning.
     last_night = (_dt.date.today() - _dt.timedelta(days=1)).isoformat()

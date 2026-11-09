@@ -1,4 +1,4 @@
-// Hypnos — Desktop half.
+// Kairos — Desktop half.
 // Strictly inside the plugin SDK surface: no prototype patching, no eval,
 // no app-markup queries, no DOM observers. Data comes from this package's
 // own backend namespace via ctx.rest.
@@ -152,9 +152,9 @@ function backendError(e) {
   const detail =
     (e && (e.message || e.error || e.detail)) || String(e || 'no detail given')
   return (
-    'Could not reach the Hypnos backend.\n\n' +
+    'Could not reach the Kairos backend.\n\n' +
     detail +
-    '\n\nIts API routes are mounted when the gateway starts. If Hypnos was ' +
+    '\n\nIts API routes are mounted when the gateway starts. If Kairos was ' +
     'installed or updated since then, restarting the gateway (⌘K → Restart ' +
     'gateway) usually fixes it. If it persists, the Python half may be ' +
     'disabled — check Capabilities → Plugins.'
@@ -196,7 +196,7 @@ function ErrorState({ message, onRetry }) {
 
 // ---------------------------------------------------------------- pane
 
-function HypnosPane({ ctx }) {
+function KairosPane({ ctx }) {
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
   const [draft, setDraft] = useState('')
@@ -219,7 +219,7 @@ function HypnosPane({ ctx }) {
   useEffect(() => {
     void load()
     const stop = ctx.setInterval(() => void load(), 60000)
-    const off = host.onEvent('plugin.hypnos.sleep.logged', () => void load())
+    const off = host.onEvent('plugin.kairos.sleep.logged', () => void load())
     return () => {
       stop()
       off()
@@ -429,7 +429,7 @@ function HypnosPane({ ctx }) {
 
 // ------------------------------------------------------------ status chip
 
-function HypnosChip({ ctx }) {
+function KairosChip({ ctx }) {
   const [share, setShare] = useState(null)
 
   useEffect(() => {
@@ -454,10 +454,10 @@ function HypnosChip({ ctx }) {
 
   return jsx('button', {
     type: 'button',
-    title: 'Hypnos — share of agent work in the small hours',
+    title: 'Kairos — share of agent work in the small hours',
     onClick: () => {
       haptic('tap')
-      host.navigate('/hypnos')
+      host.navigate('/kairos')
     },
     style: {
       padding: '0 6px',
@@ -523,7 +523,7 @@ const inputStyle = {
   color: 'var(--ui-text-primary)'
 }
 
-function HypnosSettings({ ctx }) {
+function KairosSettings({ ctx }) {
   const [g, setG] = useState(null)
   const [navOn, setNavOn] = useState(() => ctx.storage.get(NAV_KEY, false))
   const [commits, setCommits] = useState([])
@@ -588,7 +588,7 @@ function HypnosSettings({ ctx }) {
     children: [
       jsx('div', {
         style: { fontSize: '0.8125rem', fontWeight: 600, paddingBottom: '4px' },
-        children: 'Hypnos'
+        children: 'Kairos'
       }),
       jsx('div', {
         style: {
@@ -598,13 +598,13 @@ function HypnosSettings({ ctx }) {
           paddingBottom: '18px'
         },
         children:
-          'There is no correct bedtime — Hypnos measures you only against the one you set.'
+          'There is no correct bedtime — Kairos measures you only against the one you set.'
       }),
 
       Row({
         label: 'Bedtime you are aiming for',
         hint: noTarget
-          ? 'Yours, not anyone else’s. 24h, e.g. 02:30. Blank means Hypnos stays quiet about bedtime and just keeps measuring.'
+          ? 'Yours, not anyone else’s. 24h, e.g. 02:30. Blank means Kairos stays quiet about bedtime and just keeps measuring.'
           : 'Yours, not anyone else’s. 24h, e.g. 02:30.',
         children: jsx('input', {
           defaultValue: g.target_bedtime || '',
@@ -656,9 +656,9 @@ function HypnosSettings({ ctx }) {
       }),
 
       Row({
-        label: 'Show Hypnos in the sidebar',
+        label: 'Show Kairos in the sidebar',
         hint:
-          'Off by default — a permanent row for something you open now and then is clutter. However this is set, the page stays reachable from ⌘K (“Open Hypnos”) and as a pane.',
+          'Off by default — a permanent row for something you open now and then is clutter. However this is set, the page stays reachable from ⌘K (“Open Kairos”) and as a pane.',
         children: jsxs('label', {
           style: { display: 'flex', gap: '5px', alignItems: 'center', fontSize: '0.75rem' },
           children: [
@@ -679,7 +679,7 @@ function HypnosSettings({ ctx }) {
       Row({
         label: 'Ping me when I\'m not in Hermes',
         hint:
-          'The in-chat nudge only reaches you mid-conversation. With a cron job calling hypnos_ping, a bedtime hint can also arrive while the laptop is shut — or on your phone, if you point cron at a messaging channel. This switch silences it without you having to delete the job.',
+          'The in-chat nudge only reaches you mid-conversation. With a cron job calling kairos_ping, a bedtime hint can also arrive while the laptop is shut — or on your phone, if you point cron at a messaging channel. This switch silences it without you having to delete the job.',
         children: jsxs('label', {
           style: { display: 'flex', gap: '5px', alignItems: 'center', fontSize: '0.75rem' },
           children: [
@@ -843,7 +843,7 @@ function HypnosSettings({ ctx }) {
         children: Row({
           label: 'Early starts',
           hint:
-            'Things that genuinely need you up early. Hypnos works backwards from the wake time and eases the shift over the nights before, then returns to your normal target. Ask the agent to add these in conversation.',
+            'Things that genuinely need you up early. Kairos works backwards from the wake time and eases the shift over the nights before, then returns to your normal target. Ask the agent to add these in conversation.',
           children: commits.length
             ? jsx('div', {
                 style: { display: 'flex', flexDirection: 'column', gap: '4px' },
@@ -889,38 +889,38 @@ function HypnosSettings({ ctx }) {
 // ---------------------------------------------------------------- plugin
 
 export default {
-  id: 'hypnos',
-  name: 'Hypnos',
+  id: 'kairos',
+  name: 'Kairos',
   defaultEnabled: false,
   register(ctx) {
     ctx.registerMany([
       {
         id: 'pane',
         area: 'panes',
-        title: 'hypnos',
+        title: 'kairos',
         data: { placement: 'right', width: '300px' },
-        render: () => jsx(HypnosPane, { ctx })
+        render: () => jsx(KairosPane, { ctx })
       },
       {
         id: 'page',
         area: 'routes',
-        data: { path: '/hypnos' },
-        render: () => jsx(HypnosPane, { ctx })
+        data: { path: '/kairos' },
+        render: () => jsx(KairosPane, { ctx })
       },
       {
         id: 'chip',
         area: 'statusBar.right',
         order: 128,
-        render: () => jsx(HypnosChip, { ctx })
+        render: () => jsx(KairosChip, { ctx })
       },
       {
         id: 'open',
         area: 'palette',
         data: {
-          id: 'hypnos.open',
-          label: 'Open Hypnos',
-          keywords: ['sleep', 'hypnos', 'night', 'circadian'],
-          run: () => host.navigate('/hypnos')
+          id: 'kairos.open',
+          label: 'Open Kairos',
+          keywords: ['sleep', 'kairos', 'night', 'circadian'],
+          run: () => host.navigate('/kairos')
         }
       }
     ])
@@ -933,7 +933,7 @@ export default {
         ? ctx.register({
             id: 'nav',
             area: 'sidebar.nav',
-            data: { path: '/hypnos', label: 'Hypnos', codicon: 'pulse' }
+            data: { path: '/kairos', label: 'Kairos', codicon: 'pulse' }
           })
         : () => {}
     }
@@ -941,10 +941,10 @@ export default {
     ctx.onDispose(() => disposeNav())
 
     ctx.registerSettingsPage({
-      id: 'hypnos',
-      title: 'Hypnos',
+      id: 'kairos',
+      title: 'Kairos',
       icon: 'pulse',
-      render: () => jsx(HypnosSettings, { ctx })
+      render: () => jsx(KairosSettings, { ctx })
     })
   }
 }

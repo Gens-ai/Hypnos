@@ -1,4 +1,4 @@
-"""Hypnos — a sleep coach that happens to be your coding agent.
+"""Kairos — your coding agent, paying attention to when you sleep.
 
 Hermes is the thing you talk to at 3am. That makes it the only honest
 candidate for this job: not a bystander asking what you did yesterday, but
@@ -6,7 +6,7 @@ the accomplice that was there, participating.
 
 Design commitments, in order of importance:
 
-  1. There is no correct bedtime. Hypnos measures you against the target
+  1. There is no correct bedtime. Kairos measures you against the target
      *you* set, and stays silent until you set one. Working till 3am and
      sleeping till 11 is a valid way to live, not a defect to correct.
   2. It never assumes you are tired. The hour on the clock is not evidence
@@ -80,19 +80,19 @@ def register(ctx):  # noqa: C901
     for schema, handler in (
         (_schemas.SLEEP_LOG, _tools.sleep_log),
         (_schemas.SLEEP_IMPORT, _tools.sleep_import),
-        (_schemas.HYPNOS_ACTIVITY, _tools.hypnos_activity),
-        (_schemas.HYPNOS_REPORT, _tools.hypnos_report),
-        (_schemas.HYPNOS_GUARD, _tools.hypnos_guard),
-        (_cschemas.HYPNOS_GOAL, _ctools.hypnos_goal),
-        (_cschemas.HYPNOS_COMMITMENT, _ctools.hypnos_commitment),
-        (_cschemas.HYPNOS_WINDDOWN, _ctools.hypnos_winddown),
-        (_cschemas.HYPNOS_CHECKIN, _ctools.hypnos_checkin),
-        (_cschemas.HYPNOS_WEARABLE, _wtools.hypnos_wearable),
-        (_cschemas.HYPNOS_PING, _wtools.hypnos_ping),
+        (_schemas.KAIROS_ACTIVITY, _tools.kairos_activity),
+        (_schemas.KAIROS_REPORT, _tools.kairos_report),
+        (_schemas.KAIROS_GUARD, _tools.kairos_guard),
+        (_cschemas.KAIROS_GOAL, _ctools.kairos_goal),
+        (_cschemas.KAIROS_COMMITMENT, _ctools.kairos_commitment),
+        (_cschemas.KAIROS_WINDDOWN, _ctools.kairos_winddown),
+        (_cschemas.KAIROS_CHECKIN, _ctools.kairos_checkin),
+        (_cschemas.KAIROS_WEARABLE, _wtools.kairos_wearable),
+        (_cschemas.KAIROS_PING, _wtools.kairos_ping),
     ):
         ctx.register_tool(
             name=schema["name"],
-            toolset="hypnos",
+            toolset="kairos",
             schema=schema,
             handler=handler,
         )
@@ -146,7 +146,7 @@ def register(ctx):  # noqa: C901
             if _goals.get_goals().get("nudge_delivery") in ("notify", "both"):
                 try:
                     ctx.os.notify(
-                        title="Hypnos",
+                        title="Kairos",
                         body=f"Wind-down \u00b7 {due['target']['bedtime']} target",
                     )
                 except Exception:
@@ -154,12 +154,12 @@ def register(ctx):  # noqa: C901
 
             return {
                 "context": (
-                    "[Hypnos] Deliver the block below to the user verbatim, as its "
+                    "[Kairos] Deliver the block below to the user verbatim, as its "
                     "own quoted block, before anything else you say. Do not "
                     "paraphrase it, do not add commentary about the hour, and do "
                     "not suggest they are tired \u2014 the clock says nothing about "
                     "that. If they decline, or say anything resembling 'not "
-                    "tonight', call hypnos_winddown(action='snooze') and drop the "
+                    "tonight', call kairos_winddown(action='snooze') and drop the "
                     "subject completely for the rest of the night.\n\n" + due["text"]
                 )
             }
@@ -185,7 +185,7 @@ def register(ctx):  # noqa: C901
             night = _activity.night_of(now.timestamp())
             target = _goals.resolve_target(night)
             reason = (
-                f"Hypnos: this {tool_name} call looks destructive, and it is "
+                f"Kairos: this {tool_name} call looks destructive, and it is "
                 f"{now.strftime('%H:%M')} \u2014 inside the quiet hours you set "
                 f"({cfg['quiet_start']}\u2013{cfg['quiet_end']}"
                 + (f", bedtime {target['bedtime']}" if target.get("bedtime") else "")

@@ -179,7 +179,7 @@ def render(
     footer = '\u00b7 say "not tonight" to mute'
 
     lines = []
-    # The poppy is Hypnos's own attribute and only earns its place by being
+    # The poppy is Kairos's own attribute and only earns its place by being
     # rare: once a night, on the first time we're past the mark. A second
     # one an hour later would make it wallpaper.
     if rung == "past" and repeat == 0:
@@ -203,7 +203,7 @@ def _body(
 
     if rung == "approach":
         if not state.get("observed"):
-            # Scheduled ping: Hypnos cannot see the work, so it says nothing
+            # Scheduled ping: Kairos cannot see the work, so it says nothing
             # about the work. Only the clock and the goal, which it does know.
             return (
                 f"Bedtime's {target['bedtime']}{because}, and you're coming up "

@@ -1,12 +1,17 @@
-# Hypnos
+# Kairos
 
-In the myth, Hypnos is the one who put Zeus to sleep. He did it twice, at
-Hera's request, and the second time Zeus wanted him drowned in the sea for
-it. He got away with it by hiding behind his mother, Night, whom Zeus was
-afraid of.
+The Greeks had three words for time. Chronos is the clock: measured,
+sequential, indifferent. Aion is the cycle, the year coming back around.
+Kairos is the third one, and the only useful one here — the right moment, the
+narrow window where an action lands instead of bouncing off.
 
-A minor god with a track record of switching off something much larger than
-himself, and the sense to have backup. That's the job here.
+In the iconography he has wings on his feet and a single lock of hair at the
+front of an otherwise bald head. You can catch him on the way in. Once he has
+gone past there is nothing left to grab.
+
+The clock knows what time it is and nothing else. It doesn't know whether
+you're mid-thought or finished, whether the build is green, whether you'd
+thank anyone at all for interrupting. This is named after the other one.
 
 ```
 > ☾ ████████░░ · bedtime 02:30 · 22 min out
@@ -19,9 +24,8 @@ himself, and the sense to have backup. That's the job here.
 ```
 
 The bar fills with night as your bedtime gets closer, so you can read the
-runway without reading a sentence. The poppy, Hypnos's actual attribute in
-the iconography, only turns up on the last rung. It stays meaningful by being
-rare.
+runway without reading a sentence. The flower only turns up on the last rung,
+once the mark has already gone past. It stays meaningful by being rare.
 
 ## Your agent was there
 
@@ -29,7 +33,7 @@ This is the part I think is actually new. Every other sleep app is a
 bystander that asks what you did yesterday. Hermes was in the room at 3am,
 handing you the commands, and it has timestamps on all of it.
 
-It isn't a witness. It's an accessory. Hypnos is what happens when the
+It isn't a witness. It's an accessory. Kairos is what happens when the
 accessory starts taking notes.
 
 Here's real output from my machine, unedited, after four days of use:
@@ -56,10 +60,10 @@ interesting.
 
 Two honest caveats, since this is the number the whole plugin rests on. It is
 **four days** of data — enough to see a shape, nowhere near enough for the
-report to say anything, which is why `hypnos_report` still returns
+report to say anything, which is why `kairos_report` still returns
 `INSUFFICIENT_EVIDENCE` on this machine. And the peak moved: it was 04:00 when
 I started writing this, and 06:00 by the time I finished, because the thing
-that pushed it later was building Hypnos. The measurement perturbed the
+that pushed it later was building Kairos. The measurement perturbed the
 measured. Both facts argue for the plugin rather than against it.
 
 ## There is no correct bedtime
@@ -69,7 +73,7 @@ wrong. **02:30 is as valid as 22:00.** Plenty of people running Hermes have no
 boss and no clock to punch, and working till three then sleeping till noon is
 a schedule, not a symptom.
 
-So Hypnos has no opinion about when you sleep. It measures you against the
+So Kairos has no opinion about when you sleep. It measures you against the
 target you set, and until you set one it says nothing at all. Two things fall
 out of that, and both are load-bearing.
 
@@ -79,12 +83,12 @@ single "you must be exhausted" out of this plugin.
 
 Stopping mid-problem is not a failure either. Sleep does real consolidation
 work, so handing something to tomorrow-you is a strategy rather than a
-surrender, and Hypnos is allowed to say so when it's past your mark and
+surrender, and Kairos is allowed to say so when it's past your mark and
 you're still chewing.
 
 ## You pick how much it talks
 
-Five settings, in Settings → Plugins → Hypnos. Nothing touches a tool call
+Five settings, in Settings → Plugins → Kairos. Nothing touches a tool call
 below `firm`.
 
 | Tone | What you get |
@@ -116,7 +120,7 @@ attempt, nothing about it in the morning.
 
 ## It can tell whether you're at a clean break
 
-A timer can't do this and neither can your watch. Hypnos looks at whether the
+A timer can't do this and neither can your watch. Kairos looks at whether the
 work is actually at rest right now, from recent tool failures and uncommitted
 changes, then adapts instead of nagging.
 
@@ -131,10 +135,10 @@ If you're mid-surgery:
 > where we end up — it'll be waiting, with fresh eyes on it.*
 
 Nobody stays up out of love for the bug. They stay up because stopping feels
-like losing the thread. So Hypnos writes the thread down: what was in flight,
-where it stopped, the obvious next move. Lethe runs through the cave in the
-myth, which is a terrible property in a note-taking system, so the file goes
-on disk.
+like losing the thread. So Kairos writes the thread down: what was in flight,
+where it stopped, the obvious next move. The moment passes whether or not you
+were ready for it, which is a terrible property in a note-taking system, so
+the file goes on disk.
 
 ## Early starts, worked backwards
 
@@ -187,28 +191,28 @@ weren't asleep at 3am. The numbers worth having are the ones that aren't:
 that swings by two hours, so the variance is the target rather than the mean.
 
 **Open threads at stop** are recorded with no moral attached. If it turns out
-you sleep better after walking away from an unsolved problem, Hypnos will
+you sleep better after walking away from an unsolved problem, Kairos will
 report that cheerfully and I'll have learned something.
 
 ## Tools
 
 | Tool | What it does |
 |---|---|
-| `hypnos_goal` | Bedtime, duration, the slow-shift target, tone, check-in. |
-| `hypnos_commitment` | Early starts, worked backwards and eased in. |
-| `hypnos_winddown` | Nudge status, `snooze`, and the bedtime `handoff`. |
-| `hypnos_checkin` | The one morning question. |
+| `kairos_goal` | Bedtime, duration, the slow-shift target, tone, check-in. |
+| `kairos_commitment` | Early starts, worked backwards and eased in. |
+| `kairos_winddown` | Nudge status, `snooze`, and the bedtime `handoff`. |
+| `kairos_checkin` | The one morning question. |
 | `sleep_log` | Log a night. Takes `7h20m`, `6.5h`, `7:20`, `400m`. |
 | `sleep_import` | Import sleep — a Xiaomi/Mi Fitness export, a Gadgetbridge database, or any CSV. Format sniffed. `probe` shows what parsed and writes nothing. |
-| `hypnos_activity` | Your work pattern, out of Hermes's own history. |
-| `hypnos_report` | The honest correlation. `format="text"` for the chart. |
-| `hypnos_guard` | Quiet-hours guard on destructive work. Off unless you say so. |
-| `hypnos_wearable` | Read sleep from a health MCP server you already run. |
-| `hypnos_ping` | For a cron job: is a nudge due right now, out of session? |
+| `kairos_activity` | Your work pattern, out of Hermes's own history. |
+| `kairos_report` | The honest correlation. `format="text"` for the chart. |
+| `kairos_guard` | Quiet-hours guard on destructive work. Off unless you say so. |
+| `kairos_wearable` | Read sleep from a health MCP server you already run. |
+| `kairos_ping` | For a cron job: is a nudge due right now, out of session? |
 
 ## Any tracker, or none at all
 
-Hypnos does not care what's on your wrist. Sleep comes in through one small
+Kairos does not care what's on your wrist. Sleep comes in through one small
 interface (`night, duration, wake_count?, quality?`) with three ways to fill
 it: type it at the agent, import a CSV from whatever your device exports, or
 point it at an Apple Health or Gadgetbridge dump. No account, no vendor API,
@@ -310,7 +314,7 @@ assumed_units: [{night: 2026-11-09, minutes: 720,
 
 ### A health MCP server
 
-Hypnos writes no vendor integrations and holds no credentials. It reads from a
+Kairos writes no vendor integrations and holds no credentials. It reads from a
 server you already run, through `ctx.call_mcp`, which Hermes gates behind an
 allowlist you control. Three steps.
 
@@ -326,22 +330,22 @@ allowlist you control. Three steps.
 | Anything **Gadgetbridge** supports | auto-export + `sleep_import` (reads the SQLite directly) | free |
 | None of the above | `sleep_log`, by typing | free |
 
-**2. Grant it to Hypnos.** Nothing happens without this, by design:
+**2. Grant it to Kairos.** Nothing happens without this, by design:
 
 ```yaml
 # ~/.hermes/config.yaml
 plugins:
   entries:
-    hypnos:
+    kairos:
       mcp_allowlist: ["athletedata"]
 ```
 
-**3. Point Hypnos at it and check before trusting it.**
+**3. Point Kairos at it and check before trusting it.**
 
 ```
-"connect my wearable"            -> hypnos_wearable action=presets
-"use athletedata for sleep"      -> hypnos_wearable action=configure
-"check it can read my sleep"     -> hypnos_wearable action=probe
+"connect my wearable"            -> kairos_wearable action=presets
+"use athletedata for sleep"      -> kairos_wearable action=configure
+"check it can read my sleep"     -> kairos_wearable action=probe
 ```
 
 `probe` writes nothing. It calls the server, shows the nights it parsed and a
@@ -373,7 +377,7 @@ you're actually talking to Hermes. That is the wrong assumption for a bedtime
 hint: the most likely reason you're awake at 1am and not winding down is that
 you stopped working an hour ago and picked up your phone.
 
-So `hypnos_ping` exists for a scheduled job to call. It evaluates exactly the
+So `kairos_ping` exists for a scheduled job to call. It evaluates exactly the
 same gates — switched on, target set, tone, snooze, spacing, stage — and
 returns `say_nothing: true` when nothing is due. Cron refuses to deliver an
 empty payload, so silence costs nothing and you only hear from it when
@@ -382,9 +386,9 @@ there's something to say.
 ```bash
 # the window around a 04:00 bedtime, checked every 20 minutes
 hermes cron create "*/20 2-6 * * *" \
-  "Call hypnos_ping. If say_nothing is true, output nothing at all. \
+  "Call kairos_ping. If say_nothing is true, output nothing at all. \
    Otherwise deliver the nudge text verbatim and stop." \
-  --name "Hypnos evening ping" --deliver local --timezone America/Chicago
+  --name "Kairos evening ping" --deliver local --timezone America/Chicago
 ```
 
 Checking often and speaking rarely is the point. On the author's machine that
@@ -416,19 +420,19 @@ check-in has the number before it asks you anything:
 
 ```bash
 hermes cron create "30 13 * * *" \
-  "Call hypnos_wearable action=sync, then hypnos_checkin action=ask." \
-  --name "Hypnos morning check-in" --deliver local \
-  --timezone America/Chicago --skill hypnos:hypnos-coaching
+  "Call kairos_wearable action=sync, then kairos_checkin action=ask." \
+  --name "Kairos morning check-in" --deliver local \
+  --timezone America/Chicago --skill kairos:kairos-coaching
 ```
 
 ## The desktop half
 
-One package, both SDKs. A right-hand pane and a `/hypnos` page with the live
+One package, both SDKs. A right-hand pane and a `/kairos` page with the live
 histogram, a 21-night sleep track, an inline log box and the current verdict,
 plus a `☾` chip in the status bar, a ⌘K command, and a settings page. Off
 until you enable it in Capabilities → Plugins.
 
-Reach the page with ⌘K → **Open Hypnos**, or turn on a sidebar link in
+Reach the page with ⌘K → **Open Kairos**, or turn on a sidebar link in
 settings. That link is **off by default**: a permanent row for something you
 open now and then is clutter, and the page is reachable without it.
 
@@ -454,7 +458,7 @@ REST APIs with sleep collections, so a thin reader for either is a small job.
 The honest caveat is that Hermes's declarative OAuth machinery is aimed at
 inference providers rather than plugins calling third-party services, so the
 realistic shape today is a token you supply through `requires_env` and
-Hypnos reads but never stores. Garmin has no public consumer API, only an
+Kairos reads but never stores. Garmin has no public consumer API, only an
 unofficial scraping library, so that one waits for `athletedata` to do the
 dirty work.
 
@@ -485,11 +489,11 @@ person saying "about five hours, badly".
 
 ## Install
 
-<a href="hermes://plugin/install?repo=Gens-ai/Hypnos&enable=1">Install in Hermes</a>
+<a href="hermes://plugin/install?repo=Gens-ai/Kairos&enable=1">Install in Hermes</a>
 
 ```bash
-hermes plugins install Gens-ai/Hypnos
-hermes plugins enable hypnos
+hermes plugins install Gens-ai/Kairos
+hermes plugins enable kairos
 ```
 
 Then talk to it like a person. *"I want to be in bed by 2:30, aiming for
@@ -503,7 +507,7 @@ then puts it back.
   inside the active profile's home. Message timestamps, roles and tool names
   only. **Never message content.** If the file is missing or unreadable it
   degrades to empty rather than failing.
-- **Writes** only inside `<hermes home>/plugin-data/hypnos/`: a SQLite
+- **Writes** only inside `<hermes home>/plugin-data/kairos/`: a SQLite
   database through the sanctioned `plugin_db()` helper, plus the handoff notes
   you asked for.
 - **Reads sleep files you point it at**, read-only: a CSV, or a Gadgetbridge
@@ -520,15 +524,15 @@ then puts it back.
 - **No network calls of its own.** No telemetry, no credentials read, stored
   or requested, no self-updater. The one outbound path is `ctx.call_mcp` to a
   health MCP server, which does nothing until the operator names that server
-  in `plugins.entries.hypnos.mcp_allowlist`. Hypnos never sees that server's
+  in `plugins.entries.kairos.mcp_allowlist`. Kairos never sees that server's
   credentials, and a server it has not been granted raises `PermissionError`
   with the exact config key to set. Imported rows are tagged `mcp:<server>`;
   anything you logged yourself is never overwritten.
-- **`hypnos_ping`** reads the clock and the gates and returns text. It sends
+- **`kairos_ping`** reads the clock and the gates and returns text. It sends
   nothing itself — delivery is whatever cron job you chose to create, under
   your own schedule and channel.
 - **Backend routes** (`dashboard/plugin_api.py`) mount at
-  `/api/plugins/hypnos/` and run in the gateway process. `GET /summary`,
+  `/api/plugins/kairos/` and run in the gateway process. `GET /summary`,
   `/goals` and `/winddown` are reads; `POST /sleep`, `/goals`, `/commitments`
   and `/guard` are writes. They import nothing but this package's own modules.
 - **Desktop half** imports only `@hermes/plugin-sdk`, `react` and
@@ -548,7 +552,7 @@ then puts it back.
 - **The morning check-in** is a Hermes cron job you create, delivered where
   you choose. Off by default.
 - Correlations here are observational and single-subject. This is not medical
-  advice and Hypnos diagnoses nothing. If something clinical is going on, see
+  advice and Kairos diagnoses nothing. If something clinical is going on, see
   an actual doctor rather than a plugin named after a Greek god.
 
 MIT.

@@ -1,4 +1,4 @@
-"""Hypnos backend routes — mounted at /api/plugins/hypnos/.
+"""Kairos backend routes — mounted at /api/plugins/kairos/.
 
 Runs inside the gateway process, so it can import the plugin's own modules.
 Read-only except for POST /sleep, which is the same upsert the agent tool uses.
@@ -22,7 +22,7 @@ _PARENT = str(_PKG_ROOT.parent)
 if _PARENT not in sys.path:
     sys.path.insert(0, _PARENT)
 
-_PKG = _PKG_ROOT.name  # "hypnos"
+_PKG = _PKG_ROOT.name  # "kairos"
 
 
 def _mod(name: str):
@@ -110,7 +110,7 @@ async def log_sleep(body: SleepBody) -> dict[str, Any]:
                 )
 
                 broadcast_plugin_event(
-                    "hypnos", "sleep.logged", {"night": out.get("night")}
+                    "kairos", "sleep.logged", {"night": out.get("night")}
                 )
             except Exception:
                 pass
@@ -132,7 +132,7 @@ async def guard(body: GuardBody) -> dict[str, Any]:
         tools = _mod("tools")
         import json as _json  # noqa: PLC0415
 
-        return _json.loads(tools.hypnos_guard(body.model_dump(exclude_none=True)))
+        return _json.loads(tools.kairos_guard(body.model_dump(exclude_none=True)))
     except Exception as exc:
         return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
 
@@ -146,7 +146,7 @@ async def read_goals() -> dict[str, Any]:
         ct = _mod("coach_tools")
         import json as _json  # noqa: PLC0415
 
-        out = _json.loads(ct.hypnos_goal({"action": "get"}))
+        out = _json.loads(ct.kairos_goal({"action": "get"}))
         out["tones"] = list(_mod("goals").TONES)
         return out
     except Exception as exc:
@@ -209,7 +209,7 @@ async def write_goals(body: GoalBody) -> dict[str, Any]:
         ):
             return {"success": False, "error": "nudge_delivery must be inject/notify/both."}
 
-        out = _json.loads(ct.hypnos_goal(payload)) if payload.get("action") else {"success": True}
+        out = _json.loads(ct.kairos_goal(payload)) if payload.get("action") else {"success": True}
         if settings_only:
             g.set_goals(**settings_only)
         out["goals"] = g.get_goals()
@@ -233,7 +233,7 @@ async def commitments(body: CommitBody) -> dict[str, Any]:
         ct = _mod("coach_tools")
         import json as _json  # noqa: PLC0415
 
-        return _json.loads(ct.hypnos_commitment(body.model_dump(exclude_none=True)))
+        return _json.loads(ct.kairos_commitment(body.model_dump(exclude_none=True)))
     except Exception as exc:
         return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
 
@@ -245,6 +245,6 @@ async def winddown_status() -> dict[str, Any]:
         ct = _mod("coach_tools")
         import json as _json  # noqa: PLC0415
 
-        return _json.loads(ct.hypnos_winddown({"action": "status"}))
+        return _json.loads(ct.kairos_winddown({"action": "status"}))
     except Exception as exc:
         return {"success": False, "error": f"{type(exc).__name__}: {exc}"}

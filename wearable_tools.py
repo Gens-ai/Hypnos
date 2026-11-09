@@ -1,12 +1,12 @@
 """Wearable sync and the out-of-session bedtime ping.
 
-Two capabilities that both exist because Hypnos should be useful when you are
+Two capabilities that both exist because Kairos should be useful when you are
 *not* talking to Hermes:
 
-``hypnos_wearable`` reads sleep from a health MCP server the user already
+``kairos_wearable`` reads sleep from a health MCP server the user already
 runs, so nobody has to type last night in by hand.
 
-``hypnos_ping`` is what a cron job calls. The ``pre_llm_call`` nudge only
+``kairos_ping`` is what a cron job calls. The ``pre_llm_call`` nudge only
 reaches you mid-conversation, which is no use if you have shut the laptop and
 picked up your phone. A scheduled ping evaluates exactly the same gates and
 prints the nudge only when one is genuinely due, so cron's empty-payload rule
@@ -36,7 +36,7 @@ def _err(msg: str, **extra: Any) -> str:
     return _json.dumps({"success": False, "error": msg, **extra}, indent=2)
 
 
-def hypnos_wearable(params: dict[str, Any]) -> str:
+def kairos_wearable(params: dict[str, Any]) -> str:
     """Configure and read a server-backed sleep source (MCP health servers).
 
     File-based bridges go through ``sleep_import``; this one owns the
@@ -56,7 +56,7 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
             "how_to": (
                 "These preset tool names are informed guesses, not verified "
                 "against live servers. Grant the server in config.yaml under "
-                "plugins.entries.hypnos.mcp_allowlist, then run action='probe' "
+                "plugins.entries.kairos.mcp_allowlist, then run action='probe' "
                 "and check what came back before importing anything."
             ),
         }, indent=2)
@@ -116,7 +116,7 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
     if not server:
         return _err(
             "No wearable source configured. Run action='presets' to see what "
-            "Hypnos knows about, then action='configure'."
+            "Kairos knows about, then action='configure'."
         )
 
     raw_args = params.get("args") or g.get("wearable_args") or "{}"
@@ -142,7 +142,7 @@ def hypnos_wearable(params: dict[str, Any]) -> str:
     return _json.dumps({"success": True, **out}, indent=2, default=str)
 
 
-def hypnos_ping(params: dict[str, Any]) -> str:
+def kairos_ping(params: dict[str, Any]) -> str:
     """Evaluate the wind-down gates out of session. Silent unless one is due.
 
     Called by a cron job, so it must be cheap and it must say nothing at all
@@ -160,7 +160,7 @@ def hypnos_ping(params: dict[str, Any]) -> str:
             "success": True,
             "nudge": None,
             "say_nothing": True,
-            "why": "Scheduled ping is switched off in Hypnos settings.",
+            "why": "Scheduled ping is switched off in Kairos settings.",
         }, indent=2)
 
     # Out of session there is no in-flight work to interrupt, so the
@@ -196,7 +196,7 @@ def _winddown_night(now: _dt.datetime) -> str:
 
 def _why_silent(g: dict[str, Any], target: dict[str, Any], now: _dt.datetime) -> str:
     if target.get("source") == "none" or not target.get("bedtime"):
-        return "No target bedtime set, so Hypnos has nothing to measure against."
+        return "No target bedtime set, so Kairos has nothing to measure against."
     if target.get("tone") == "off":
         return "Tone is 'off' — measurement only."
     night = _winddown_night(now)

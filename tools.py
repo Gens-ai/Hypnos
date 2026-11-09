@@ -1,4 +1,4 @@
-"""Hypnos tool handlers."""
+"""Kairos tool handlers."""
 
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ def sleep_log(params: dict, **_kw: Any) -> str:
         hours=round(duration / 60, 2),
         nights_logged=total,
         note=(
-            f"{short} more night(s) until Hypnos will report a correlation."
+            f"{short} more night(s) until Kairos will report a correlation."
             if short
             else "Enough nights logged to attempt a correlation."
         ),
@@ -151,10 +151,10 @@ def sleep_import(params: dict, **_kw: Any) -> str:
     return _ok(**out)
 
 
-# ---------------------------------------------------- hypnos_activity
+# ---------------------------------------------------- kairos_activity
 
 
-def hypnos_activity(params: dict, **_kw: Any) -> str:
+def kairos_activity(params: dict, **_kw: Any) -> str:
     days = int(params.get("days") or 30)
     days = max(1, min(days, 365))
     synced = _activity.sync_activity(days=days)
@@ -182,14 +182,14 @@ def hypnos_activity(params: dict, **_kw: Any) -> str:
     )
 
 
-# ------------------------------------------------------ hypnos_report
+# ------------------------------------------------------ kairos_report
 
 
 def _bar(n: int, width: int = 40, peak: int = 1) -> str:
     return "#" * max(0, round(n / max(peak, 1) * width))
 
 
-def hypnos_report(params: dict, **_kw: Any) -> str:
+def kairos_report(params: dict, **_kw: Any) -> str:
     days = int(params.get("days") or 60)
     _activity.sync_activity(days=days)
     sleep_rows = _storage.list_sleep(limit=days)
@@ -199,7 +199,7 @@ def hypnos_report(params: dict, **_kw: Any) -> str:
     if params.get("format") == "text":
         hist = _activity.hour_histogram(days=days)
         peak = max(hist.values()) if hist else 1
-        lines = ["HYPNOS", "=" * 52, "", "Agent activity by hour of day:"]
+        lines = ["KAIROS", "=" * 52, "", "Agent activity by hour of day:"]
         for h in range(24):
             c = hist.get(h, 0)
             if c:
@@ -222,10 +222,10 @@ def hypnos_report(params: dict, **_kw: Any) -> str:
     return _ok(**result)
 
 
-# ------------------------------------------------------- hypnos_guard
+# ------------------------------------------------------- kairos_guard
 
 
-def hypnos_guard(params: dict, **_kw: Any) -> str:
+def kairos_guard(params: dict, **_kw: Any) -> str:
     action = (params.get("action") or "status").lower()
     if action == "status":
         return _ok(config=_storage.get_guard_config(),
