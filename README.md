@@ -179,8 +179,10 @@ below `firm`.
 | `firm` | Same, plus a confirmation step on destructive commands in quiet hours. |
 | `guardian` | Same, and those commands can be refused outright. Entirely your call. |
 
-Nudges land between your turns, never in the middle of a tool chain, either
-as a quoted block the agent reads out or a desktop notification or both.
+Nudges land between your turns, never in the middle of a tool chain, as a
+quoted block the agent reads out. Optionally a desktop notification goes with
+it — the Desktop half posts that one, and only while Hermes is not the window
+in front, so the quoted block is never skipped.
 
 You set the spacing. A minimum gap (45 minutes by default, anywhere from 0 to
 240) applies between any two nudges whatever the stage. Each stage before

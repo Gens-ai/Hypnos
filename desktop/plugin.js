@@ -485,9 +485,10 @@ const TONE_COPY = {
 
 const DELIVERY_COPY = {
   inject: 'In the conversation, between your turns.',
-  notify: 'A desktop notification.',
-  both: 'Both.'
+  both: 'In the conversation, plus a desktop notification when Hermes is not the window in front.'
 }
+// Legacy stored value from when a notification-only option existed.
+const deliveryValue = v => (v === 'notify' ? 'both' : v || 'inject')
 
 function Row({ label, hint, children }) {
   return jsxs('div', {
@@ -644,12 +645,12 @@ function KairosSettings({ ctx }) {
 
       Row({
         label: 'Where nudges arrive',
-        hint: DELIVERY_COPY[g.nudge_delivery] || '',
+        hint: DELIVERY_COPY[deliveryValue(g.nudge_delivery)] || '',
         children: jsx('select', {
-          value: g.nudge_delivery || 'inject',
+          value: deliveryValue(g.nudge_delivery),
           onChange: e => void save({ nudge_delivery: e.target.value }),
           style: { ...inputStyle, width: '180px' },
-          children: ['inject', 'notify', 'both'].map(t =>
+          children: ['inject', 'both'].map(t =>
             jsx('option', { value: t, children: t }, t)
           )
         })
@@ -924,6 +925,22 @@ export default {
         }
       }
     ])
+
+    // The Python half cannot post an OS notification (ctx.os is a Desktop
+    // door), so it broadcasts the moment and this is where it becomes one.
+    // Subscribed at register time, not inside a pane, so it works with the
+    // pane closed. The SDK only shows it while Hermes is not in front; the
+    // conversation block is delivered either way.
+    const offNudge = host.onEvent('plugin.kairos.nudge.due', ev => {
+      const p = (ev && (ev.payload || ev.params || ev.data)) || ev || {}
+      const body = p.bedtime ? `Wind-down · ${p.bedtime} target` : 'Wind-down'
+      try {
+        void ctx.os.notify({ title: 'Kairos', body, activate: '/kairos' })
+      } catch (_) {
+        /* the capability may be absent; the conversation block still lands */
+      }
+    })
+    ctx.onDispose(offNudge)
 
     // Sidebar row: registered only while the user asks for it.
     let disposeNav = () => {}

@@ -201,13 +201,15 @@ async def write_goals(body: GoalBody) -> dict[str, Any]:
                     "success": False,
                     "error": "clean_break_patience_min must be 0-120.",
                 }
-        if settings_only.get("nudge_delivery") not in (
-            None,
-            "inject",
-            "notify",
-            "both",
-        ):
-            return {"success": False, "error": "nudge_delivery must be inject/notify/both."}
+        # "notify" was once a third option. An OS notification cannot stand
+        # alone — the Desktop SDK only shows one while the user is away from
+        # Hermes, and nothing posts it when the Desktop is not running — so
+        # the conversation block is always delivered and "notify" is the
+        # same thing as "both". Accept the old value, store the honest one.
+        if settings_only.get("nudge_delivery") == "notify":
+            settings_only["nudge_delivery"] = "both"
+        if settings_only.get("nudge_delivery") not in (None, "inject", "both"):
+            return {"success": False, "error": "nudge_delivery must be inject/both."}
 
         out = _json.loads(ct.kairos_goal(payload)) if payload.get("action") else {"success": True}
         if settings_only:

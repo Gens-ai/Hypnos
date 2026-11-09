@@ -205,11 +205,26 @@ def register(ctx):  # noqa: C901
                 return _other_moments()
             _storage.record_nudge(due["night"], due["rung"])
 
+            # The OS notification can only be posted from the Desktop half
+            # (ctx.os is a Desktop SDK door, not a Python one), so broadcast
+            # the moment and let desktop/plugin.js call ctx.os.notify. The
+            # conversation block below is delivered regardless: the Desktop
+            # may not be running, and the SDK only shows OS notifications
+            # while the user is away from Hermes.
             if _goals.get_goals().get("nudge_delivery") in ("notify", "both"):
                 try:
-                    ctx.os.notify(
-                        title="Kairos",
-                        body=f"Wind-down \u00b7 {due['target']['bedtime']} target",
+                    from hermes_cli.plugin_events import (  # noqa: PLC0415
+                        broadcast_plugin_event,
+                    )
+
+                    broadcast_plugin_event(
+                        "kairos",
+                        "nudge.due",
+                        {
+                            "night": due["night"],
+                            "rung": due["rung"],
+                            "bedtime": (due.get("target") or {}).get("bedtime"),
+                        },
                     )
                 except Exception:
                     pass

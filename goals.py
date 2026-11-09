@@ -28,7 +28,7 @@ DEFAULTS: dict[str, str] = {
     "ramp_min_per_week": "15",
     "ramp_started": "",
     "tone": "encouraging",
-    "nudge_delivery": "inject",    # inject | notify | both
+    "nudge_delivery": "inject",    # inject | both ("notify" is a legacy alias of both)
     # Minimum minutes between any two nudges, whatever the rung.
     "nudge_gap_min": "45",
     # Hold a due nudge until work is actually at rest, rather than cutting in.

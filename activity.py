@@ -24,9 +24,25 @@ NIGHT_ROLLOVER_HOUR = 5
 _FALLBACK_LATE_HOUR = 23
 
 
+def _hermes_home() -> str:
+    """The Hermes home of the profile this process is actually serving.
+
+    A gateway can serve several profiles from one process while keeping the
+    launch profile in ``HERMES_HOME``, so reading that variable directly can
+    point at the wrong profile's session store. ``get_hermes_home()`` is the
+    public plugin API for this; the env fallback is only for running outside
+    Hermes (tests, the standalone harness).
+    """
+    try:
+        from hermes_constants import get_hermes_home  # noqa: PLC0415
+
+        return str(get_hermes_home())
+    except Exception:
+        return os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+
+
 def _state_db_path() -> str:
-    home = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
-    return os.path.join(home, "state.db")
+    return os.path.join(_hermes_home(), "state.db")
 
 
 def _open_ro() -> Optional[sqlite3.Connection]:
