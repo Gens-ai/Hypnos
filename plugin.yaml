@@ -1,5 +1,5 @@
 name: kairos
-version: 0.5.0
+version: 0.5.1
 description: >-
   Correlates your agent's own work patterns against your sleep. Hermes already
   knows when you were up at 3am wrestling a build, which makes it the one
