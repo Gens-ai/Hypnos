@@ -295,7 +295,7 @@ function KairosPane({ ctx }) {
             '  ',
             c.label || c.feature,
             c.r != null ? `  r=${c.r}` : '',
-            c.ci95 ? `  CI[${c.ci95[0]}, ${c.ci95[1]}]` : ''
+            c.ci ? `  CI${c.ci_level || ''}[${c.ci[0]}, ${c.ci[1]}]` : ''
           ]
         })
       ]

@@ -48,7 +48,6 @@ DEFAULTS: dict[str, str] = {
     "ping_enabled": "false",
     "ping_every_min": "30",
     "ping_channel": "desktop",
-    "track_open_threads": "true",
 }
 
 

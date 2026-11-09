@@ -8,6 +8,10 @@ Rules:
   * Fewer than MIN_PAIRS matched nights  -> INSUFFICIENT_EVIDENCE, no numbers.
   * Correlation reported with a bootstrap CI; if the CI straddles zero the
     verdict is INCONCLUSIVE, not a direction.
+  * Every feature is tested against the same nights, so the interval is
+    Bonferroni-corrected (alpha / number of features). Without it, five
+    features at 95% each put a spurious "associated" in about one report
+    in four. With it, about one in twenty.
   * Never a causal verb. "associated with", never "causes".
 """
 
@@ -21,6 +25,8 @@ from typing import Any, Optional
 MIN_PAIRS = 10
 # Enough to start quoting an interval with a straight face.
 DECENT_PAIRS = 21
+# Family-wise error rate across all features tested in one report.
+ALPHA = 0.05
 
 FEATURES: dict[str, str] = {
     "late_minutes": "how late you were still working",
@@ -120,6 +126,9 @@ def analyze(
         return base
 
     durations = [float(p["sleep"]["duration_min"]) for p in pairs]
+    # Bonferroni: the family-wise rate is split across every feature tested.
+    per_feature_alpha = ALPHA / len(FEATURES)
+    ci_level = round((1 - per_feature_alpha) * 100)
     results = []
     for feat, label in FEATURES.items():
         xs = [float(p["activity"].get(feat) or 0) for p in pairs]
@@ -139,7 +148,7 @@ def analyze(
                 {"feature": feat, "label": label, "verdict": "NOT_COMPUTABLE"}
             )
             continue
-        ci = _bootstrap_ci(xs, durations)
+        ci = _bootstrap_ci(xs, durations, alpha=per_feature_alpha)
         entry: dict[str, Any] = {
             "feature": feat,
             "label": label,
@@ -149,11 +158,12 @@ def analyze(
             "n": n,
         }
         if ci:
-            entry["ci95"] = [round(ci[0], 3), round(ci[1], 3)]
+            entry["ci"] = [round(ci[0], 3), round(ci[1], 3)]
+            entry["ci_level"] = ci_level
             if ci[0] <= 0 <= ci[1]:
                 entry["verdict"] = "INCONCLUSIVE"
                 entry["detail"] = (
-                    "the 95% interval includes zero — direction not established"
+                    f"the {ci_level}% interval includes zero — direction not established"
                 )
             else:
                 entry["verdict"] = "ASSOCIATED"

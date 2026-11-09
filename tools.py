@@ -207,8 +207,8 @@ def kairos_report(params: dict, **_kw: Any) -> str:
         lines += ["", f"Verdict: {result['verdict']}", result["message"], ""]
         for c in result.get("correlations", []):
             if "r" in c:
-                ci = c.get("ci95")
-                ci_s = f"  CI95 [{ci[0]}, {ci[1]}]" if ci else ""
+                ci = c.get("ci")
+                ci_s = f"  CI{c.get('ci_level', '')} [{ci[0]}, {ci[1]}]" if ci else ""
                 lines.append(
                     f"  [{c['verdict']}] {c['label']}: r={c['r']} "
                     f"({c['strength']}){ci_s}"

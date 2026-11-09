@@ -113,7 +113,7 @@ def render_break(state: dict[str, Any]) -> str:
         what,
         "",
         "That is often the point where stepping away beats another attempt.",
-        "I can write down where this got to to make picking it up cheap.",
+        "I can write down where this got to, so picking it up is cheap.",
         "Want me to?",
         "",
         "\u00b7 say \"keep going\" and I'll drop it",

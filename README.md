@@ -39,8 +39,8 @@ thank anyone at all for interrupting. This is named after the other one.
 ## It can tell whether you're at a clean break
 
 A timer can't do this and neither can your watch. Kairos looks at whether the
-work is actually at rest right now, from recent tool failures and uncommitted
-changes, then adapts instead of nagging.
+work is actually at rest right now — whether the last few tool calls succeeded
+or failed — then adapts instead of nagging.
 
 If you're clear:
 
@@ -94,7 +94,7 @@ to do with it:
 > 6 failed calls in a row here, mostly `terminal`.
 >
 > That is often the point where stepping away beats another attempt.
-> I can write down where this got to to make picking it up cheap.
+> I can write down where this got to, so picking it up is cheap.
 > Want me to?
 >
 > · say "keep going" and I'll drop it
@@ -168,7 +168,7 @@ you're still chewing.
 
 ## You pick how much it talks
 
-Five settings, in Settings → Plugins → Kairos. Nothing touches a tool call
+Tone is one setting, in Settings → Plugins → Kairos. Nothing touches a tool call
 below `firm`.
 
 | Tone | What you get |
@@ -186,7 +186,8 @@ You set the spacing. A minimum gap (45 minutes by default, anywhere from 0 to
 240) applies between any two nudges whatever the stage. Each stage before
 your bedtime gets mentioned once and is then dropped, because "22 min out"
 does not bear repeating. Only the past-your-bedtime message is allowed to
-come back, on that same interval.
+come back, on that same interval, and it comes back at most twice — shorter
+each time, and the third one says it's the last.
 
 It also tries to catch you at a sensible moment rather than cutting in. If a
 nudge comes due while something is failing or half-finished it waits, and
@@ -233,24 +234,26 @@ data points.
 - Under 10 matched nights you get `INSUFFICIENT_EVIDENCE` and no numbers at
   all, not even hedged ones
 - Under 21 nights every figure is stamped `PROVISIONAL`
-- Every correlation carries a bootstrap 95% interval, and if that interval
+- Every correlation carries a bootstrap interval, corrected for the number of
+  features tested at once (five, so each is a 99% interval); if that interval
   contains zero the answer is `INCONCLUSIVE` rather than a direction
 - No causal verbs anywhere. "Associated with", never "causes"
 
-Tested against synthetic data with a known effect planted in it: finds the
-real one at r = −0.93, CI [−0.96, −0.87], and calls all four noise features
-inconclusive. No false positives.
+Tested against synthetic nights with one real effect planted and four features
+that are pure noise (`tests/test_analysis.py`). From 30 nights up it finds the
+planted one every time and a report carries a spurious "associated with"
+about one time in twenty; at 21 nights it's one in eleven, because the
+bootstrap interval is optimistic on small samples, and the strong planted
+effect is missed just under 1% of the time. The correction costs sensitivity:
+a modest real effect takes more nights to clear the gate than it would
+without it. Erring that way is the point.
 
 It also won't dress a tautology up as a discovery. "Worked late" against
 "slept less" is nearly circular, because if you were working at 3am you
-weren't asleep at 3am. The numbers worth having are the ones that aren't:
+weren't asleep at 3am. The number worth having is one that isn't:
 
 **Spread beats earliness.** A reliable 02:00 does more for you than a 23:00
 that swings by two hours, so the variance is the target rather than the mean.
-
-**Open threads at stop** are recorded with no moral attached. If it turns out
-you sleep better after walking away from an unsolved problem, Kairos will
-report that cheerfully and I'll have learned something.
 
 ## Tools
 
@@ -449,17 +452,16 @@ then puts it back.
 - **Writes** only inside `<hermes home>/plugin-data/kairos/`: a SQLite
   database through the sanctioned `plugin_db()` helper, plus the handoff notes
   you asked for.
-- **Reads sleep files you point it at**, read-only: a CSV, or a Gadgetbridge
-  SQLite export opened with `mode=ro`. Nothing is written back to either, and
+- **Reads sleep files you point it at**, read-only: a CSV; a Mi Fitness
+  export folder, in which it looks only for the two
+  `hlth_center_*fitness_data.csv` tables; or a Gadgetbridge SQLite export
+  opened with `mode=ro`. Nothing is written back to any of them, and
   an import never overwrites a night you logged yourself. It **fails closed on
   anything that isn't a sleep export** and echoes none of its contents, so the
   importer cannot be used as a general file reader; a SQLite file without a
   Gadgetbridge sample table is refused without its schema being listed. The
   table name is validated against the database's own catalogue before it
   reaches a query, and kind filters are bound parameters.
-- **Reads git status** in the session's working directory when there is one,
-  purely to work out whether you're at a clean stopping point. Nothing is
-  written and no history is read.
 - **No network calls of its own.** No telemetry, no credentials read, stored
   or requested, no self-updater. The one outbound path is `ctx.call_mcp` to a
   health MCP server, which does nothing until the operator names that server
@@ -484,8 +486,11 @@ then puts it back.
   turns. Silent when no target is set, at tone `off`, when that rung already
   fired tonight, or when you've snoozed.
 - **The guard** can escalate or veto a tool call, but only once you enable
-  it, only at tone `firm` or `guardian`, only for the tools listed above,
-  only inside the window you set, and only on destructive argument patterns.
+  it, only at tone `firm` or `guardian`, only for `terminal`, `write_file`,
+  `patch`, `execute_code`, `browser_exec` and `delegate_task`, only inside
+  the window you set, and only on destructive argument patterns (`rm -rf`,
+  `git push --force`, `git reset --hard`, `DROP TABLE`, `DELETE FROM`,
+  `truncate`, `migrate`, `deploy`).
   It fails open: any internal error lets the call through rather than wedging
   your agent.
 - **The morning check-in** is a Hermes cron job you create, delivered where

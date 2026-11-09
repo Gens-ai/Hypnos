@@ -12,7 +12,7 @@ Design commitments, in order of importance:
   2. It never assumes you are tired. The hour on the clock is not evidence
      about your body.
   3. It offers, it does not instruct. Tone is the user's choice, default
-     'gentle'. "not tonight" is honoured without comment.
+     'encouraging'. "not tonight" is honoured without comment.
   4. Stopping mid-problem is not a failure. Sleeping on something is a real
      strategy, and the copy is allowed to say so.
 
