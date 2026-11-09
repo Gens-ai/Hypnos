@@ -75,12 +75,7 @@ measured. Both facts argue for the plugin rather than against it.
 
 ## There is no correct bedtime
 
-I want to be blunt about this, because most things in this category get it
-wrong. **02:30 is as valid as 22:00.** Plenty of people running Hermes have no
-boss and no clock to punch, and working till three then sleeping till noon is
-a schedule, not a symptom.
-
-So Kairos has no opinion about when you sleep. It measures you against the
+Kairos has no opinion about when you sleep. It measures you against the
 target you set, and until you set one it says nothing at all. Two things fall
 out of that, and both are load-bearing.
 
