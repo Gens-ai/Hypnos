@@ -391,10 +391,167 @@ def _preview(payload: Any, limit: int = 600) -> str:
     return s[:limit] + ("\u2026" if len(s) > limit else "")
 
 
+# --------------------------------------------------------------- Xiaomi
+
+
+class XiaomiSource(SleepSource):
+    """A Mi Fitness / Xiaomi account data export.
+
+    Xiaomi's GDPR export is not a sleep file. It is a long key/value table
+    (``hlth_center_aggregated_fitness_data.csv``) where each row's ``Value``
+    is a JSON blob, and sleep is the subset whose ``Key`` is ``sleep``. A
+    second table, ``hlth_center_fitness_data.csv``, carries per-device
+    ``watch_night_sleep`` rows with an ``awake_count`` the aggregate lacks,
+    so the two are merged by night.
+
+    ``total_duration`` is Xiaomi's figure for all sleep in the day,
+    including naps — a night with a 20-minute nap and a 443-minute sleep
+    reports 463. For correlating against a working day the main sleep is
+    the honest number, so the **longest segment** becomes the night and the
+    daily total is kept in ``extra``.
+    """
+
+    name = "xiaomi"
+    label = "Mi Fitness / Xiaomi account export (Mi Band, Redmi Watch)"
+    provides = ("sleep_start", "sleep_end", "wake_count", "quality")
+
+    AGG_GLOB = "*aggregated_fitness_data.csv"
+    FIT_GLOB = "*center_fitness_data.csv"
+
+    def requirements(self) -> dict[str, Any]:
+        return {
+            "path": "The extracted export folder, or the aggregated CSV itself. "
+                    "Get it from account.xiaomi.com -> Privacy -> Manage Your "
+                    "Data -> Mi Fitness -> Download.",
+        }
+
+    def _find(self, root: str) -> tuple[Optional[str], Optional[str]]:
+        import glob  # noqa: PLC0415
+
+        if _os.path.isfile(root):
+            return root, None
+        agg = glob.glob(_os.path.join(root, "**", self.AGG_GLOB), recursive=True)
+        fit = [
+            f for f in glob.glob(_os.path.join(root, "**", self.FIT_GLOB), recursive=True)
+            if "aggregated" not in _os.path.basename(f)
+        ]
+        return (agg[0] if agg else None), (fit[0] if fit else None)
+
+    def _load(self, cfg):
+        import csv  # noqa: PLC0415
+        import json  # noqa: PLC0415
+
+        from . import activity as _activity  # noqa: PLC0415
+
+        root = _os.path.expanduser(str(cfg.get("path") or ""))
+        if not root:
+            raise ValueError("'path' is required.")
+        if not _os.path.exists(root):
+            raise FileNotFoundError(f"No such path: {root}")
+        agg, fit = self._find(root)
+        if not agg:
+            raise ValueError(
+                "No Xiaomi aggregated fitness CSV found under that path. Point "
+                "this at the extracted export folder. Its contents are not shown."
+            )
+
+        def read(path, key):
+            out = []
+            if not path:
+                return out
+            with open(path, newline="", encoding="utf-8", errors="replace") as fh:
+                for r in csv.DictReader(fh):
+                    if r.get("Key") != key:
+                        continue
+                    try:
+                        r["_v"] = json.loads(r.get("Value") or "{}")
+                    except ValueError:
+                        continue
+                    out.append(r)
+            return out
+
+        agg_rows = read(agg, "sleep")
+        fit_rows = read(fit, "watch_night_sleep")
+
+        # awake_count by night, from the per-device rows only.
+        wakes: dict[str, int] = {}
+        for r in fit_rows:
+            v = r["_v"]
+            bed = v.get("bedtime") or r.get("Time")
+            if bed is None:
+                continue
+            night = _activity.night_of(float(bed))
+            if v.get("awake_count") is not None:
+                wakes[night] = int(v["awake_count"])
+
+        nights: dict[str, dict[str, Any]] = {}
+        for r in agg_rows + fit_rows:
+            v = r["_v"]
+            segs = [s for s in (v.get("segment_details") or [])
+                    if isinstance(s, dict) and s.get("duration")]
+            if segs:
+                main = max(segs, key=lambda s: s.get("duration") or 0)
+                dur = int(main["duration"])
+                start = main.get("bedtime")
+                end = main.get("wake_up_time")
+            else:
+                dur = v.get("duration") or v.get("total_duration")
+                start, end = v.get("bedtime"), v.get("wake_up_time")
+                if dur is None:
+                    continue
+                dur = int(dur)
+            if start is None:
+                start = r.get("Time")
+            if start is None:
+                continue
+            night = _activity.night_of(float(start))
+
+            score = v.get("sleep_score")
+            quality = None
+            if isinstance(score, (int, float)) and score > 0:
+                quality = max(1, min(5, int(round(float(score) / 20.0))))
+
+            rec = {
+                "night": night,
+                "duration_min": dur,
+                "sleep_start": float(start) if start else None,
+                "sleep_end": float(end) if end else None,
+                "wake_count": wakes.get(night, v.get("awake_count")),
+                "quality": quality,
+                "extra": {
+                    k: v[k] for k in (
+                        "sleep_deep_duration", "sleep_light_duration",
+                        "sleep_rem_duration", "sleep_awake_duration",
+                        "sleep_score", "total_duration", "avg_hr", "avg_spo2",
+                    ) if v.get(k) not in (None, 0)
+                },
+            }
+            if len(segs) > 1:
+                rec["extra"]["segments"] = len(segs)
+            # Prefer the richer record when both tables describe one night.
+            prev = nights.get(night)
+            if prev is None or (rec["quality"] is not None and prev["quality"] is None) \
+                    or len(rec["extra"]) > len(prev.get("extra") or {}):
+                nights[night] = rec
+
+        out = [n for n in sorted(nights.values(), key=lambda r: r["night"])
+               if _norm.MIN_SLEEP_MIN <= n["duration_min"] <= _norm.MAX_SLEEP_MIN]
+        preview = {
+            "aggregated_csv": _os.path.basename(agg),
+            "device_csv": _os.path.basename(fit) if fit else None,
+            "aggregated_sleep_rows": len(agg_rows),
+            "device_sleep_rows": len(fit_rows),
+            "distinct_nights": len(nights),
+            "kept_after_plausibility": len(out),
+            "date_range": (f"{out[0]['night']} .. {out[-1]['night']}" if out else None),
+        }
+        return out, preview
+
+
 # ------------------------------------------------------------- registry
 
 REGISTRY: dict[str, SleepSource] = {
-    s.name: s for s in (CsvSource(), McpSource(), GadgetbridgeSource())
+    s.name: s for s in (CsvSource(), McpSource(), GadgetbridgeSource(), XiaomiSource())
 }
 
 
@@ -415,8 +572,15 @@ def describe_sources() -> list[dict[str, Any]]:
 
 
 def sniff_file(path: str) -> Optional[str]:
-    """Guess the source for a file so the user needn't name the format."""
+    """Guess the source so the user needn't name the format."""
+    import glob  # noqa: PLC0415
+
     path = _os.path.expanduser(path or "")
+    if _os.path.isdir(path):
+        # A Xiaomi export is a folder of key/value CSVs, not one sleep file.
+        if glob.glob(_os.path.join(path, "**", XiaomiSource.AGG_GLOB), recursive=True):
+            return "xiaomi"
+        return None
     if not _os.path.isfile(path):
         return None
     try:
@@ -426,4 +590,6 @@ def sniff_file(path: str) -> Optional[str]:
         return None
     if head.startswith(b"SQLite format 3"):
         return "gadgetbridge"
+    if "aggregated_fitness_data" in _os.path.basename(path):
+        return "xiaomi"
     return "csv"

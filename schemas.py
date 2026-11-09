@@ -51,7 +51,7 @@ SLEEP_IMPORT = {
             "path": {"type": "string", "description": "Path to the CSV file."},
             "source": {
                 "type": "string",
-                "enum": ["auto", "csv", "gadgetbridge"],
+                "enum": ["auto", "csv", "gadgetbridge", "xiaomi"],
                 "description": (
                     "Format. Default 'auto' sniffs the file: a SQLite header "
                     "means gadgetbridge, anything else csv."

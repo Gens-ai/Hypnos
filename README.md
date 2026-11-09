@@ -230,11 +230,37 @@ that.
 | Source | What it reads | Supplies beyond duration |
 |---|---|---|
 | `csv` | Any tracker's CSV export, or one you typed | wake count, quality |
+| `xiaomi` | A Mi Fitness / Xiaomi account export | bedtime, wake time, wake count, sleep score, stage breakdown |
 | `gadgetbridge` | A Gadgetbridge SQLite export (Mi Band, Amazfit) | onset/offset times, wake count |
 | `mcp` | A health MCP server you already run | onset/offset times, wake count, quality |
 
 Each declares what it can supply, so the report can say *"this source has no
 onset latency"* rather than treating absent as zero.
+
+### A Mi Fitness / Xiaomi export
+
+Xiaomi's export is not a sleep file — it is a key/value table where each
+`Value` is a JSON blob and sleep is the rows keyed `sleep`, plus a second
+per-device table carrying the `awake_count` the first one lacks. The `xiaomi`
+source merges them, and point it at the extracted folder:
+
+```
+"import my sleep from ~/sync/xiaomi/..._data_copy"
+```
+
+Real output from the author's own export: 85 rows across two tables, 31 with
+no duration, 2 outside the plausibility bound, 19 nights described by both
+tables and merged → **27 nights, 2022-07-11 to 2025-08-11**, with sleep
+scores and deep/light/REM minutes carried through in `extra`.
+
+One judgement call worth knowing: Xiaomi's `total_duration` is all sleep in
+the day including naps, so a night with a 20-minute nap and a 443-minute
+sleep reports 463. For correlating against a working day the main sleep is
+the honest number, so the **longest segment** becomes the night and the daily
+total is kept in `extra`.
+
+Request it at **account.xiaomi.com → Privacy → Manage Your Data → Mi Fitness
+→ Download**. Xiaomi quotes fifteen days; it can arrive the next.
 
 ### A file: CSV or Gadgetbridge
 
@@ -296,7 +322,8 @@ allowlist you control. Three steps.
 | An iPhone or Apple Watch | `apple-health-mcp` | free, reads a local export |
 | An iPhone and a server you host | `healthrelay` | free |
 | Something already in a local health store | `health-data` | free |
-| A Mi Band, Amazfit or anything Gadgetbridge supports | auto-export + `sleep_import` (reads the SQLite directly) | free |
+| A Mi Band or Redmi Watch on **Mi Fitness** | `account.xiaomi.com` → Privacy → Manage Your Data → Mi Fitness → Download, then `sleep_import` | free |
+| Anything **Gadgetbridge** supports | auto-export + `sleep_import` (reads the SQLite directly) | free |
 | None of the above | `sleep_log`, by typing | free |
 
 **2. Grant it to Hypnos.** Nothing happens without this, by design:
