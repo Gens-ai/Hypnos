@@ -199,7 +199,7 @@ report that cheerfully and I'll have learned something.
 | `hypnos_winddown` | Nudge status, `snooze`, and the bedtime `handoff`. |
 | `hypnos_checkin` | The one morning question. |
 | `sleep_log` | Log a night. Takes `7h20m`, `6.5h`, `7:20`, `400m`. |
-| `sleep_import` | Import a file — CSV or a Gadgetbridge database. Format sniffed. |
+| `sleep_import` | Import sleep — a Xiaomi/Mi Fitness export, a Gadgetbridge database, or any CSV. Format sniffed. `probe` shows what parsed and writes nothing. |
 | `hypnos_activity` | Your work pattern, out of Hermes's own history. |
 | `hypnos_report` | The honest correlation. `format="text"` for the chart. |
 | `hypnos_guard` | Quiet-hours guard on destructive work. Off unless you say so. |
