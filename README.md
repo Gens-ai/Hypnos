@@ -471,7 +471,7 @@ the pane says so instead of exploding.
 
 ## Install
 
-<a href="hermes://plugin/install?repo=Gens-ai/Kairos&enable=1">Install in Hermes</a>
+[Install in Hermes](hermes://plugin/install?repo=Gens-ai/Kairos&enable=1)
 
 ```bash
 hermes plugins install Gens-ai/Kairos
