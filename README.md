@@ -132,9 +132,7 @@ to do with it:
 > · say "keep going" and I'll drop it
 ```
 
-Note what it does not say. It does not say you are stuck, frustrated, tired,
-or going round in circles — those are conclusions about a person drawn from a
-number about some tool calls. It reports the count and makes an offer.
+It reports the count and makes an offer; the rest is yours to conclude.
 
 It is deliberately hard to trigger: a false positive interrupts someone who
 is working fine, which is the exact failure this plugin exists to avoid. Six
