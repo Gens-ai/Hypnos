@@ -12,7 +12,7 @@ the sample actually supports it, and says nothing the rest of the time.
 ```
 > ☾ ████████░░ · bedtime 02:30 · 22 min out
 >
-> Good spot — nothing failing and nothing half-finished. If you want the
+> Good spot — the last few calls all went through. If you want the
 > full 7h30, this is an easy place to leave it. Want me to write up where
 > we got to so you can start winding down?
 >
@@ -192,7 +192,7 @@ come back, on that same interval, and it comes back at most twice — shorter
 each time, and the third one says it's the last.
 
 It also tries to catch you at a sensible moment rather than cutting in. If a
-nudge comes due while something is failing or half-finished it waits, and
+nudge comes due while the recent tool calls are failing it waits, and
 speaks when the work settles. That wait is bounded by a patience window (20
 minutes by default) after which it speaks anyway, except on `gentle`, which
 would rather miss the window than interrupt you. Turn the whole behaviour off
@@ -396,7 +396,7 @@ So pick the shape that matches your setup:
 | Where you are | What reaches you |
 |---|---|
 | At the machine | The in-session nudge, on `pre_llm_call`. |
-| Away from it, machine still on | The ping — and this is the case worth setting up. Point `--deliver` at a messaging channel and it finds you on your phone, still knowing whether the build is green and what you left half-finished. |
+| Away from it, machine still on | The ping — and this is the case worth setting up. Point `--deliver` at a messaging channel and it finds you on your phone. It knows the time and your target, and admits it knows nothing about what you were doing. |
 | Away from it, machine off | Nothing. Nothing informed is possible, and Kairos would rather be quiet than guess. |
 
 The middle row is the one that matters. Being away from the keyboard is the
@@ -432,7 +432,7 @@ same moment. The ping has its own switch in settings, so you can silence it
 without going back to hunt down the cron job.
 
 **Out of session it will not pretend to know what you're doing.** The
-in-session copy can say "nothing failing and nothing half-finished" because
+in-session copy can say "the last few calls all went through" because
 it checked. The scheduled ping has nothing to check, and says so:
 
 > *You'd set 02:30 as the mark. No pressure and no idea what you're up to —
@@ -517,9 +517,20 @@ then puts it back.
   switch it on — one sidebar row. The sidebar preference is the single thing
   it stores locally, under its own `ctx.storage` namespace; everything else
   lives in the plugin's own database.
-- **The `pre_llm_call` hook** injects the wind-down block as context between
-  turns. Silent when no target is set, at tone `off`, when that rung already
-  fired tonight, or when you've snoozed.
+- **The `pre_llm_call` hook** injects context between turns, at most one
+  block per turn, and only on the paths listed here: the wind-down block
+  (silent when no target is set, at tone `off`, when that rung already fired
+  tonight, or when you've snoozed); the handoff note you saved, once, on the
+  first turn of a later session; and a break suggestion when the recent tool
+  results it watched are failing. Stopping-point detection reads nothing but
+  those tool outcomes — no files, no git, no shell.
+- **Desktop notification**, only if you set delivery to `both`: the hook
+  broadcasts a `plugin.kairos.nudge.due` event carrying the night, the rung
+  and your bedtime string, and the Desktop half turns it into one OS
+  notification through the SDK's `ctx.os.notify`. The SDK shows it only
+  while Hermes is not the window in front, and it is subject to the app's
+  own plugin-notification setting. Nothing fires without the Desktop.
+- **No shell commands.** Kairos never spawns a process.
 - **The guard** can escalate or veto a tool call, but only once you enable
   it, only at tone `firm` or `guardian`, only for `terminal`, `write_file`,
   `patch`, `execute_code`, `browser_exec` and `delegate_task`, only inside

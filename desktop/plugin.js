@@ -720,7 +720,7 @@ function KairosSettings({ ctx }) {
       Row({
         label: 'Wait for a natural stopping point',
         hint:
-          'When a nudge comes due while something is failing or half-finished, hold it back and speak when the work settles instead. If nothing settles within the patience window it speaks anyway. On Gentle it simply stays quiet and misses the window.',
+          'When a nudge comes due while recent tool calls are failing, hold it back and speak when the work settles instead. If nothing settles within the patience window it speaks anyway. On Gentle it simply stays quiet and misses the window.',
         children: jsxs('div', {
           style: { display: 'flex', gap: '10px', alignItems: 'center' },
           children: [

@@ -166,7 +166,7 @@ def kairos_ping(params: dict[str, Any]) -> str:
     # Out of session there is no in-flight work to interrupt, so the
     # clean-break machinery has nothing to weigh; an empty history reads as
     # "at rest", which is the honest description of someone not working.
-    due = _winddown.should_nudge(now=now, recent=[], cwd=None)
+    due = _winddown.should_nudge(now=now, recent=[])
     if not due:
         g = _goals.get_goals()
         target = _goals.resolve_target(_winddown_night(now))

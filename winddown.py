@@ -102,7 +102,7 @@ def current_rung(target_hhmm: str, now: _dt.datetime) -> Optional[tuple[str, int
 # ------------------------------------------------- safe stopping point
 
 
-def stop_state(recent: list[dict[str, Any]], cwd: Optional[str] = None) -> dict[str, Any]:
+def stop_state(recent: list[dict[str, Any]]) -> dict[str, Any]:
     """Is this a natural place to leave the work?
 
     Deliberately valence-free: `open_threads` is a fact, not a judgement.
@@ -111,40 +111,21 @@ def stop_state(recent: list[dict[str, Any]], cwd: Optional[str] = None) -> dict[
     ``observed`` distinguishes "I looked and the work is at rest" from "I have
     nothing to look at". A scheduled ping fired while you are away from Hermes
     gets the latter, and must not claim your work is tidy when it has no idea.
+
+    The only evidence is the recent tool outcomes the hook saw. Kairos runs
+    no shell commands: an earlier `git status` probe was never wired to a
+    caller and has been removed rather than disclosed.
     """
     errors = sum(1 for r in recent[-6:] if r.get("error"))
     last_error = bool(recent and recent[-1].get("error"))
-    dirty = None
-    if cwd:
-        dirty = _git_dirty(cwd)
-    clean = (not last_error) and errors == 0 and dirty is not True
+    clean = (not last_error) and errors == 0
     return {
         "clean": clean,
-        "observed": bool(recent) or dirty is not None,
+        "observed": bool(recent),
         "recent_errors": errors,
         "last_call_errored": last_error,
-        "uncommitted": dirty,
-        "open_threads": errors > 0 or dirty is True,
+        "open_threads": errors > 0,
     }
-
-
-def _git_dirty(cwd: str) -> Optional[bool]:
-    import subprocess  # noqa: PLC0415
-
-    try:
-        r = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-        if r.returncode != 0:
-            return None
-        return bool(r.stdout.strip())
-    except Exception:
-        return None
 
 
 # ------------------------------------------------------------ rendering
@@ -219,7 +200,7 @@ def _body(
             )
         if state.get("clean"):
             return (
-                "Good spot \u2014 nothing failing and nothing half-finished. If you "
+                "Good spot \u2014 the last few calls all went through. If you "
                 f"want the full {hours}, this is an easy place to leave it. "
                 "Want me to write up where we got to so you can start winding down?"
             )
@@ -282,7 +263,6 @@ def _body(
 def should_nudge(
     now: Optional[_dt.datetime] = None,
     recent: Optional[list[dict[str, Any]]] = None,
-    cwd: Optional[str] = None,
 ) -> Optional[dict[str, Any]]:
     """Decide whether to speak right now. Returns the payload, or None.
 
@@ -337,7 +317,7 @@ def should_nudge(
         return None
 
     # --- natural stopping point
-    state = stop_state(recent or [], cwd=cwd)
+    state = stop_state(recent or [])
     waited_min = 0
     if not state["clean"]:
         if tone in CLEAN_ONLY:
