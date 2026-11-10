@@ -23,6 +23,39 @@ The bar fills with night as your bedtime gets closer, so you can read the
 runway without reading a sentence. The flower only turns up on the last rung,
 once the mark has already gone past. It stays meaningful by being rare.
 
+## Install
+
+[Install in Hermes](hermes://plugin/install?repo=Gens-ai/Kairos&enable=1)
+
+```bash
+hermes plugins install Gens-ai/Kairos
+hermes plugins enable kairos
+```
+
+Then talk to it like a person. *"I want to be in bed by 2:30, aiming for
+seven and a half hours"* sets the target. *"Slept about five hours, woke up
+twice"* logs the night. *"Flight at 7 on Saturday"* reshapes the week and
+then puts it back.
+
+## Contents
+
+- [Install](#install)
+- [Why it's called Kairos](#why-its-called-kairos)
+- [It can tell whether you're at a clean break](#it-can-tell-whether-youre-at-a-clean-break)
+- [Two other moments it watches for](#two-other-moments-it-watches-for)
+- [Your agent was there](#your-agent-was-there)
+- [There is no correct bedtime](#there-is-no-correct-bedtime)
+- [You pick how much it talks](#you-pick-how-much-it-talks)
+- [Early starts, worked backwards](#early-starts-worked-backwards)
+- [One question in the morning](#one-question-in-the-morning)
+- [It would rather say nothing than lie](#it-would-rather-say-nothing-than-lie)
+- [The one it reports without a coefficient](#the-one-it-reports-without-a-coefficient)
+- [Tools](#tools)
+- [Where sleep comes from](#where-sleep-comes-from)
+- [Being useful when you're not in a session](#being-useful-when-youre-not-in-a-session)
+- [The desktop half](#the-desktop-half)
+- [Disclosure](#disclosure)
+
 ## Why it's called Kairos
 
 The Greeks had three words for time. Chronos is the clock: measured,
@@ -468,20 +501,6 @@ It stays inside the plugin SDK surface: no prototype patching, no `eval`, no
 querying the app's own markup, no DOM observers. Everything arrives through
 this package's own backend namespace, and if the Python half is switched off
 the pane says so instead of exploding.
-
-## Install
-
-[Install in Hermes](hermes://plugin/install?repo=Gens-ai/Kairos&enable=1)
-
-```bash
-hermes plugins install Gens-ai/Kairos
-hermes plugins enable kairos
-```
-
-Then talk to it like a person. *"I want to be in bed by 2:30, aiming for
-seven and a half hours"* sets the target. *"Slept about five hours, woke up
-twice"* logs the night. *"Flight at 7 on Saturday"* reshapes the week and
-then puts it back.
 
 ## Disclosure
 
