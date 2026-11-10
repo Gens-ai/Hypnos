@@ -98,10 +98,9 @@ are wired in. Both follow the same rules as the wind-down: they offer, they
 end on a question, and they report what was observed rather than what it
 concluded about you.
 
-**The note you left yourself.** Kairos writes down where the work got to when
-you stop. For a while nothing handed it back, which made the feature half of
-a promise. Now the most recent note is offered once, on the first turn of a
-later session, and then marked seen:
+**The note you left yourself.** Kairos writes down where the work got to
+when you stop. The most recent note is handed back once, on the first turn
+of a later session, and then marked seen:
 
 ```
 > ○  you left yourself a note last night
