@@ -455,6 +455,11 @@ histogram, a 21-night sleep track, an inline log box and the current verdict,
 plus a `☾` chip in the status bar, a ⌘K command, and a settings page. Off
 until you enable it in Capabilities → Plugins.
 
+![The Kairos pane](docs/screenshots/pane.png)
+
+![Settings, upper half](docs/screenshots/settings-1.png)
+![Settings, lower half](docs/screenshots/settings-2.png)
+
 Reach the page with ⌘K → **Open Kairos**, or turn on a sidebar link in
 settings. That link is **off by default**: a permanent row for something you
 open now and then is clutter, and the page is reachable without it.
