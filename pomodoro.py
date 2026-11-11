@@ -299,3 +299,85 @@ def should_suggest_pomodoro(
         "boundary": b,
         "waited_for_break_min": waited,
     }
+
+
+# -------------------------------------------------------------------- copy
+#
+# House rules: lead with a fact about the work, offer, end in a question.
+# No "should", nothing about how the person is or feels, and no reading of
+# the block count -- it is a counter, not a score.
+
+_ONES = ("zero one two three four five six seven eight nine ten eleven twelve "
+         "thirteen fourteen fifteen sixteen seventeen eighteen nineteen").split()
+_TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
+
+
+def words(n: int) -> str:
+    """5 -> 'five', 25 -> 'twenty-five'. Digits past 99."""
+    if 0 <= n < 20:
+        return _ONES[n]
+    if 20 <= n < 100:
+        t, o = divmod(n, 10)
+        return _TENS[t] + (f"-{_ONES[o]}" if o else "")
+    return str(n)
+
+
+def _ring(block: int) -> str:
+    return "\u25cf" * block + "\u25cb" * (BLOCKS_PER_CYCLE - block)
+
+
+def _why_not_clean(b: dict[str, Any]) -> str:
+    if b.get("recent_errors"):
+        return "some of the last few calls failed"
+    if not b.get("last_turn_ok", True):
+        return "the last turn was stopped partway"
+    if b.get("tight_loop"):
+        return "we've been going back and forth fast"
+    return "the work is mid-flight"
+
+
+def render(p: dict[str, Any], cfg: dict[str, Any]) -> str:
+    """The block the agent delivers. ``p`` is a speaking gate payload."""
+    rest, work = words(cfg["break_min"]), words(cfg["work_min"])
+    b = p.get("boundary") or {}
+    clean, repeat, block = p.get("clean", True), int(p.get("repeat") or 0), p["block"]
+
+    where = f"{p['stretch_min']} min on this stretch"
+    header = (f"\u25cb  {_ring(block)} \u00b7 fourth block \u00b7 {where}"
+              if p.get("long_rest") else f"\u25cb  {_ring(block)} \u00b7 {where}")
+
+    if clean:
+        spot = ("Clean spot \u2014 the last few calls all went through."
+                if b.get("observed") else "Clean spot \u2014 that turn wrapped up.")
+    else:
+        spot = f"Not a clean spot \u2014 {_why_not_clean(b)} \u2014 but it has been a while."
+
+    if repeat >= MAX_IGNORED - 1:
+        body = [f"{rest.capitalize()} minutes if you want them. Last one until "
+                "I see you step away; then the count picks back up."]
+    elif repeat:
+        body = ([spot] if not clean else ["Still a clean spot."]) + [
+            f"{rest.capitalize()} minutes if you want them \u2014 say the word "
+            "and I'll note where we are."]
+    elif p.get("long_rest"):
+        body = [spot,
+                f"This is the longer rest the pattern asks for \u2014 "
+                f"{words(LONG_REST_MIN)} or so, not {rest}. Want to take it "
+                "while I keep at this?"]
+    elif block == 1:
+        body = [spot,
+                f"The deal with this pattern is that {rest} minutes now buys back "
+                f"the next {work}. Want to step away while I get on with this? "
+                "It'll be here when you're back, and I'll note where we are if "
+                "that helps."]
+    elif clean:
+        body = [spot,
+                f"Want to step away for {rest} while I get on with this? It'll be "
+                "here when you're back."]
+    else:
+        body = [spot, f"Want {rest} while I keep at it?"]
+
+    footer = ('\u00b7 "not today" and I\'ll stop' if repeat >= MAX_IGNORED - 1 else
+              '\u00b7 "skip" and I\'ll ask again next block  '
+              '\u00b7 "not today" and I\'ll stop')
+    return "\n".join([header, "", *body, "", footer])

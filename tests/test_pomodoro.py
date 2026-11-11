@@ -287,3 +287,87 @@ def test_the_fourth_block_is_the_long_rest():
 
 def test_repeat_follows_the_ignored_streak():
     assert _ask(state=_due(ignored_streak=2))["repeat"] == 2
+
+
+# -------------------------------------------------------------------- copy
+
+
+def _pay(**kw):
+    p = {"block": 1, "long_rest": False, "repeat": 0, "stretch_min": 52,
+         "clean": True, "boundary": {"observed": True, "recent_errors": 0,
+                                     "last_turn_ok": True, "tight_loop": False}}
+    p.update(kw)
+    return p
+
+
+def test_ring_counts_the_block():
+    for n, ring in ((1, "●○○○"), (2, "●●○○"), (3, "●●●○"), (4, "●●●●")):
+        assert ring in pomodoro.render(_pay(block=n, long_rest=n == 4), CFG)
+
+
+def test_header_states_the_stretch():
+    assert "52 min on this stretch" in pomodoro.render(_pay(), CFG)
+
+
+def test_footer_offers_skip_and_not_today():
+    text = pomodoro.render(_pay(), CFG)
+    assert '"skip"' in text and '"not today"' in text
+
+
+def test_last_offer_does_not_promise_another():
+    text = pomodoro.render(_pay(repeat=2), CFG)
+    assert "next block" not in text
+    assert '"not today"' in text
+
+
+def test_the_deal_line_is_first_of_cycle_only():
+    deal = "buys back the next"
+    assert deal in pomodoro.render(_pay(block=1, repeat=0), CFG)
+    assert deal not in pomodoro.render(_pay(block=2, repeat=0), CFG)
+    assert deal not in pomodoro.render(_pay(block=1, repeat=1), CFG)
+
+
+def test_numbers_follow_the_config():
+    text = pomodoro.render(_pay(), dict(CFG, work_min=50, break_min=10))
+    assert "ten minutes now buys back the next fifty" in text
+    assert "for ten" in pomodoro.render(_pay(block=2), dict(CFG, break_min=10))
+
+
+def test_long_rest_names_the_longer_rest():
+    text = pomodoro.render(_pay(block=4, long_rest=True), CFG)
+    assert "twenty" in text and "fourth block" in text
+
+
+def test_repeats_get_shorter():
+    first = pomodoro.render(_pay(block=2), CFG)
+    second = pomodoro.render(_pay(block=2, repeat=1), CFG)
+    third = pomodoro.render(_pay(block=2, repeat=2), CFG)
+    assert len(third) < len(first) and len(second) < len(first)
+    assert "Last one" in third
+
+
+def test_clean_claims_only_what_was_seen():
+    assert "calls all went through" in pomodoro.render(_pay(), CFG)
+    none_seen = _pay(boundary={"observed": False, "recent_errors": 0,
+                               "last_turn_ok": True, "tight_loop": False})
+    assert "calls" not in pomodoro.render(none_seen, CFG)
+    assert "Still a clean spot" not in pomodoro.render(_pay(repeat=1, clean=False), CFG)
+
+
+def test_patience_copy_names_the_actual_reason():
+    b = {"observed": True, "recent_errors": 0, "last_turn_ok": True, "tight_loop": False}
+    failed = pomodoro.render(_pay(clean=False, boundary=dict(b, recent_errors=2)), CFG)
+    stopped = pomodoro.render(_pay(clean=False, boundary=dict(b, last_turn_ok=False)), CFG)
+    fast = pomodoro.render(_pay(clean=False, boundary=dict(b, tight_loop=True)), CFG)
+    assert "failed" in failed
+    assert "stopped" in stopped
+    assert "back and forth" in fast
+
+
+def test_banned_words_never_appear():
+    for p in (_pay(), _pay(block=4, long_rest=True), _pay(repeat=1), _pay(repeat=2),
+              _pay(clean=False, boundary={"observed": True, "recent_errors": 3,
+                                          "last_turn_ok": True, "tight_loop": False})):
+        text = pomodoro.render(p, CFG).lower()
+        for banned in ("should", "tired", "too long", "you need"):
+            assert banned not in text, (banned, text)
