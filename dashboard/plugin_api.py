@@ -168,6 +168,10 @@ class GoalBody(BaseModel):
     checkin_enabled: Optional[bool] = None
     checkin_time: Optional[str] = None
     checkin_channel: Optional[str] = None
+    pomodoro_enabled: Optional[bool] = None
+    pomodoro_work_min: Optional[int] = None
+    pomodoro_break_min: Optional[int] = None
+    pomodoro_away_min: Optional[int] = None
 
 
 @router.post("/goals")
@@ -187,9 +191,17 @@ async def write_goals(body: GoalBody) -> dict[str, Any]:
                 "prefer_clean_break",
                 "clean_break_patience_min",
                 "ping_enabled",
+                "pomodoro_enabled",
+                "pomodoro_work_min",
+                "pomodoro_break_min",
+                "pomodoro_away_min",
             )
             if k in payload
         }
+        for key, (lo, hi, _default) in _mod("pomodoro").RANGES.items():
+            name = f"pomodoro_{key}"
+            if name in settings_only and not lo <= int(settings_only[name]) <= hi:
+                return {"success": False, "error": f"{name} must be {lo}-{hi}."}
         if "nudge_gap_min" in settings_only:
             v = int(settings_only["nudge_gap_min"])
             if not 0 <= v <= 240:
@@ -248,5 +260,34 @@ async def winddown_status() -> dict[str, Any]:
         import json as _json  # noqa: PLC0415
 
         return _json.loads(ct.kairos_winddown({"action": "status"}))
+    except Exception as exc:
+        return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+@router.get("/pomodoro")
+async def pomodoro_status() -> dict[str, Any]:
+    """The pane's one-line pomodoro readout."""
+    try:
+        ct = _mod("coach_tools")
+        import json as _json  # noqa: PLC0415
+
+        return _json.loads(ct.kairos_pomodoro({"action": "status"}))
+    except Exception as exc:
+        return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+class PomodoroBody(BaseModel):
+    action: str = "status"
+    minutes: Optional[int] = None
+    scope: Optional[str] = None
+
+
+@router.post("/pomodoro")
+async def pomodoro_action(body: PomodoroBody) -> dict[str, Any]:
+    try:
+        ct = _mod("coach_tools")
+        import json as _json  # noqa: PLC0415
+
+        return _json.loads(ct.kairos_pomodoro(body.model_dump(exclude_none=True)))
     except Exception as exc:
         return {"success": False, "error": f"{type(exc).__name__}: {exc}"}

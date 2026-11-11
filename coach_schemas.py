@@ -200,3 +200,40 @@ KAIROS_PING = {
         "required": [],
     },
 }
+
+KAIROS_POMODORO = {
+    "name": "kairos_pomodoro",
+    "description": (
+        "The opt-in pomodoro: a short rest offered once per work block, only at a "
+        "clean stopping point. Use when they say they're stepping away ('taking "
+        "five', 'brb', 'back in 10'), want to skip the offer ('skip', 'keep "
+        "going', 'not today'), or ask where the clock is. Never comment on a "
+        "rest when they come back."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": ["status", "rest", "skip"],
+                "description": (
+                    "Default 'status'. 'rest' = they're stepping away now. 'skip' "
+                    "= decline this offer; with scope='today', no more offers "
+                    "until they've been away a while."
+                ),
+            },
+            "minutes": {
+                "type": "integer",
+                "description": (
+                    "For action='rest': how long they said they'd be gone, if "
+                    "they said. 20 or more also restarts the four-block cycle."
+                ),
+            },
+            "scope": {
+                "type": "string",
+                "enum": ["block", "today"],
+                "description": "For action='skip'. Default 'block'.",
+            },
+        },
+    },
+}

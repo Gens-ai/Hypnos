@@ -23,9 +23,10 @@ class _Ctx:
 
     def __init__(self):
         self.hooks = {}
+        self.tools = []
 
-    def register_tool(self, **_kw):
-        pass
+    def register_tool(self, **kw):
+        self.tools.append(kw["name"])
 
     def register_hook(self, name, fn):
         self.hooks[name] = fn
@@ -34,11 +35,15 @@ class _Ctx:
         pass
 
 
-def _hooks(monkeypatch):
+def _register(monkeypatch):
     monkeypatch.setattr(kairos._wtools, "bind_ctx", lambda ctx: None)
     ctx = _Ctx()
     kairos.register(ctx)
-    return ctx.hooks
+    return ctx
+
+
+def _hooks(monkeypatch):
+    return _register(monkeypatch).hooks
 
 
 def _forbid_storage(monkeypatch):

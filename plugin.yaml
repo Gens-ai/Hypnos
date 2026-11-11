@@ -24,8 +24,10 @@ provides_tools:
   - kairos_checkin
   - kairos_wearable
   - kairos_ping
+  - kairos_pomodoro
 provides_hooks:
   - on_session_start
   - post_tool_call
   - pre_llm_call
   - pre_tool_call
+  - on_session_end

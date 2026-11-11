@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import kairos  # noqa: E402
 from kairos import goals, pomodoro, storage  # noqa: E402
-from test_human_turn import _hooks  # noqa: E402
+from test_human_turn import _hooks, _register  # noqa: E402
 
 MIN = 60.0
 
@@ -55,6 +55,13 @@ def _turn(hooks, clock, n, platform="desktop", session="s1", calls=2, run_min=1.
 def test_on_session_end_is_registered(env):
     hooks, _ = env
     assert "on_session_end" in hooks
+
+
+def test_the_tool_is_registered_and_declared(monkeypatch):
+    assert "kairos_pomodoro" in _register(monkeypatch).tools
+    manifest = (Path(kairos.__file__).parent / "plugin.yaml").read_text()
+    assert "  - kairos_pomodoro" in manifest
+    assert "  - on_session_end" in manifest
 
 
 def test_an_offer_arrives_as_context_after_a_block(env):

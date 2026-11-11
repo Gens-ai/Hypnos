@@ -125,6 +125,7 @@ def register(ctx):  # noqa: C901
         (_cschemas.KAIROS_CHECKIN, _ctools.kairos_checkin),
         (_cschemas.KAIROS_WEARABLE, _wtools.kairos_wearable),
         (_cschemas.KAIROS_PING, _wtools.kairos_ping),
+        (_cschemas.KAIROS_POMODORO, _ctools.kairos_pomodoro),
     ):
         ctx.register_tool(
             name=schema["name"],

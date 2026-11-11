@@ -213,3 +213,42 @@ def kairos_checkin(params: dict, **_kw: Any) -> str:
         recorded=True,
         note="If they gave a duration, call sleep_log with it too.",
     )
+
+
+# -------------------------------------------------------- kairos_pomodoro
+
+
+def kairos_pomodoro(params: dict, **_kw: Any) -> str:
+    from . import pomodoro as _pomodoro  # noqa: PLC0415
+
+    action = (params.get("action") or "status").lower()
+    now = _dt.datetime.now().timestamp()
+    recent = _storage.recent_outcomes()
+
+    if action == "status":
+        return _ok(pomodoro=_pomodoro.status(now, recent))
+    if action not in ("rest", "skip"):
+        return _err("action must be status, rest or skip")
+    if not _pomodoro.config(_goals.get_goals())["enabled"]:
+        return _err("The pomodoro is off. It can be switched on in Kairos settings.")
+
+    if action == "rest":
+        minutes = params.get("minutes")
+        if minutes is not None:
+            try:
+                minutes = int(minutes)
+            except (TypeError, ValueError):
+                return _err("'minutes' must be a whole number.")
+            if not 1 <= minutes <= 240:
+                return _err("'minutes' must be 1-240.")
+        out = _pomodoro.declare_rest(now, minutes)
+        return _ok(**out, note="Noted. Say nothing about it when they're back.")
+
+    scope = (params.get("scope") or "block").lower()
+    if scope not in ("block", "today"):
+        return _err("scope must be block or today")
+    out = _pomodoro.skip(now, scope)
+    return _ok(**out, note=(
+        "No more offers until they've been away a while. Drop the subject."
+        if scope == "today" else "Drop it; the next offer is a full block away."
+    ))
