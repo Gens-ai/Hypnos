@@ -42,6 +42,10 @@ up, it waits for a clean spot and then offers the rest:
 You step away; the agent keeps working. More in
 [The timer that doesn't tick](#the-timer-that-doesnt-tick).
 
+## The 90-second demo:
+
+<img width="1280" height="720" alt="still_47" src="https://github.com/user-attachments/assets/1d8d23e3-608e-4d6a-8c0f-dd3312364e68" />
+
 ## Install
 
 [Install in Hermes](hermes://plugin/install?repo=Gens-ai/Kairos&enable=1)
