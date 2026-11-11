@@ -376,8 +376,8 @@ a modest real effect takes more nights to clear the gate than it would
 without it. Erring that way is the point.
 
 It also won't dress a tautology up as a discovery. "Worked late" against
-"slept less" is nearly circular, because if you were working at 3am you
-weren't asleep at 3am. The number worth having is one that isn't:
+"slept less" is nearly circular, because if you were working late you
+weren't asleep at the time. The number worth having is one that isn't:
 
 **Spread beats earliness.** A reliable 02:00 does more for you than a 23:00
 that swings by two hours, so the variance is the target rather than the mean.

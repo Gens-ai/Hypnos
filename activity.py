@@ -232,7 +232,7 @@ def sync_activity(days: int = 90) -> int:
 
 
 def hour_histogram(days: int = 90) -> dict[int, int]:
-    """Messages per local hour-of-day. The 'you are a 3am person' chart."""
+    """Messages per local hour-of-day. The 'you are a night person' chart."""
     con = _open_ro()
     if con is None:
         return {}

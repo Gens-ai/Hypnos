@@ -1,13 +1,13 @@
 """Kairos — your coding agent, paying attention to when you sleep.
 
-Hermes is the thing you talk to at 3am. That makes it the only honest
+Hermes is the thing you talk to late at night. That makes it the only honest
 candidate for this job: not a bystander asking what you did yesterday, but
 the accomplice that was there, participating.
 
 Design commitments, in order of importance:
 
   1. There is no correct bedtime. Kairos measures you against the target
-     *you* set, and stays silent until you set one. Working till 3am and
+     *you* set, and stays silent until you set one. Working late and
      sleeping till 11 is a valid way to live, not a defect to correct.
   2. It never assumes you are tired. The hour on the clock is not evidence
      about your body.

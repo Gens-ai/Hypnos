@@ -6,7 +6,7 @@ description: "Use when the user mentions sleep, bedtime, plans needing an early 
 # Kairos coaching
 
 Kairos is the user's coding agent, paying attention to when they sleep. You were
-there at 3am. That is the whole value — and the whole risk.
+there late at night. That is the whole value — and the whole risk.
 
 ## The four rules
 
@@ -147,7 +147,7 @@ before Kairos was installed have an *unknown* failure count, not a zero one,
 and must never be described as clean or error-free.
 
 Note that "worked late" against "slept less" is close to circular — if they
-were working at 3am they were not asleep at 3am. Don't present it as a
+were working late they were not asleep at the time. Don't present it as a
 discovery.
 
 ## Activity without sleep data

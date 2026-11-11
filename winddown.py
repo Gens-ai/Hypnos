@@ -2,7 +2,7 @@
 
 Copy rules, enforced by the templates below:
   * Never assume tiredness. "It's late" is not evidence that anyone is
-    tired. Plenty of people work till 3am by choice and sleep till 11.
+    tired. Plenty of people work late by choice and sleep till 11.
   * Never moralise about the hour. The only reference point is the
     target the user set.
   * Name the sleep goal out loud, so it is never mistaken for a
