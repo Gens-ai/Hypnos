@@ -134,6 +134,10 @@ The agent delivers that and carries on with what you asked. You are the one
 who may step away; the work keeps going. That is the part a kitchen timer
 can't do: the break is when something still gets done.
 
+As it arrives in a chat:
+
+![A pomodoro offer delivered in a Hermes chat](docs/screenshots/pomodoro-nudge.png)
+
 It is off until you switch it on in Settings → Plugins → Kairos → Pomodoro.
 
 **It can't see focus, only the work.** "At a boundary" means: the recent tool
