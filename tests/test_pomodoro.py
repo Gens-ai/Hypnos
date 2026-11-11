@@ -124,6 +124,9 @@ def test_a_long_absence_lifts_not_today():
     # anyone who works nights.
     s = _state(stretch_start=1000.0, last_human_at=2000.0, paused=1)
     assert pomodoro.touch(s, CFG, now=2000.0 + 60 * 60)["paused"] == 1
+    # Five hours is the floor for a night's sleep: four is not enough.
+    assert pomodoro.PAUSE_LIFTS_AFTER_H == 5
+    assert pomodoro.touch(s, CFG, now=2000.0 + 4.9 * 3600)["paused"] == 1
     later = 2000.0 + pomodoro.PAUSE_LIFTS_AFTER_H * 3600
     assert pomodoro.touch(s, CFG, now=later)["paused"] == 0
 

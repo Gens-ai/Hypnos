@@ -31,7 +31,7 @@ BLOCKS_PER_CYCLE = 4
 LONG_REST_MIN = 20       # a rest this long also resets the four-block cycle
 TIGHT_LOOP_SEC = 60      # reply this soon after handback = mid-flight
 MAX_IGNORED = 3          # the same ceiling as the wind-down's MAX_REPEATS
-PAUSE_LIFTS_AFTER_H = 3  # "not today" ends once you've been gone this long
+PAUSE_LIFTS_AFTER_H = 5  # "not today" ends after an absence long enough to be sleep
 
 # setting -> (min, max, default). Mirrored by the settings routes and UI.
 RANGES = {

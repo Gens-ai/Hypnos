@@ -190,8 +190,8 @@ is that long delegated runs rarely hear from it; it is most present in
 tight back-and-forth sessions.
 
 Three untaken offers in a row and it goes quiet until it sees a rest. "not
-today" lasts until you've been away three hours or more, so it doesn't end
-at midnight in the middle of a session. Bedtime takes priority: inside the
+today" lasts until you've been away five hours or more — long enough to have
+slept — so it doesn't end at midnight in the middle of a session. Bedtime takes priority: inside the
 wind-down's window, this stays silent.
 
 Four settings, one row: on/off, **block** (25), **rest** (5), **away** (8).

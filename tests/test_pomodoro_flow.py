@@ -171,7 +171,7 @@ def test_skip_today_pauses_until_a_long_absence():
     _, offers = _work(T0 + 2 * MIN, T0 + 80 * MIN)
     assert offers == []
     assert "not today" in pomodoro.status(T0 + 80 * MIN, recent=[])["why_silent"]
-    pomodoro.on_user_turn(T0 + 80 * MIN + 4 * 3600, recent=[])
+    pomodoro.on_user_turn(T0 + 80 * MIN + 5 * 3600, recent=[])
     assert _state()["paused"] == 0
 
 
