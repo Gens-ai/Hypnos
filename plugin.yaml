@@ -1,12 +1,13 @@
 name: kairos
-version: 0.6.0
+version: 0.7.0
 description: >-
   Correlates your agent's own work patterns against your sleep. Hermes already
   knows when you were up at 3am wrestling a build, which makes it the one
   honest witness to it: not a bystander, the accomplice. Set
   your own bedtime — 02:30 is as valid as 22:00 — and it offers a wind-down at
   a clean stopping point, saves your place so stopping costs nothing, shifts
-  the target for early starts, asks one question each morning, and reports only
+  the target for early starts, offers an opt-in pomodoro rest at clean
+  boundaries, asks one question each morning, and reports only
   correlations the sample can support.
 author: Gens AI
 license: MIT

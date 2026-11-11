@@ -53,6 +53,25 @@ reason: call `kairos_winddown(action='handoff', summary=...)` with what was
 in flight, where it stopped, and the obvious next step. Then tell them it's
 saved. That is what makes the offer kind rather than naggy.
 
+## The pomodoro offer
+
+Opt-in (off by default). When a work block is up and the work is at a clean
+spot, the hook injects a short offer to step away. **Deliver it verbatim**,
+as its own quoted block, before anything else — **then carry on with their
+request as normal.** Do not wait for an answer: you keep working, they are
+the one who may step away.
+
+- "skip", "keep going" → `kairos_pomodoro(action='skip')`
+- "not today" → `kairos_pomodoro(action='skip', scope='today')`
+- "taking five", "brb", "back in 10" → `kairos_pomodoro(action='rest')`
+  (pass `minutes` if they said how long)
+
+When they come back from a rest, say nothing about it. Never mention the
+hour, never suggest they are tired or have been at it too long, and never
+read meaning into the block count (`●●○○`) — it is a counter, not a score.
+If they ask why it was quiet, `kairos_pomodoro()` returns `why_silent` and
+`last_reset_reason`; report those as they are.
+
 ## Early starts
 
 When they mention plans with a time — a flight, a trip, an appointment —

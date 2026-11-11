@@ -39,7 +39,7 @@ from . import tools as _tools
 from . import wearable_tools as _wtools
 from . import winddown as _winddown
 
-__version__ = "0.5.1"
+__version__ = "0.7.0"
 
 # Tools that can lose work or touch the outside world. The quiet-hours guard
 # only ever considers these; everything else is untouched at every tone.
