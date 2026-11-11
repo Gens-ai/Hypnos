@@ -571,8 +571,12 @@ until you enable it in Capabilities → Plugins.
 
 ![The Kairos pane](docs/screenshots/pane.png)
 
-![Settings, upper half](docs/screenshots/settings-1.png)
-![Settings, lower half](docs/screenshots/settings-2.png)
+![Kairos settings, Pomodoro page](docs/screenshots/settings-pomodoro.png)
+
+Settings pages: [Kairos](docs/screenshots/settings-kairos.png) ·
+[Nudges](docs/screenshots/settings-nudges.png) ·
+[Pomodoro](docs/screenshots/settings-pomodoro.png) ·
+[Schedule](docs/screenshots/settings-schedule.png)
 
 Reach the page with ⌘K → **Open Kairos**, or turn on a sidebar link in
 Kairos settings. That link is **off by default**: a permanent row for something you
