@@ -75,6 +75,21 @@ def _in_quiet_hours(now: _dt.datetime, start: str, end: str) -> bool:
     return cur >= s or cur < e if s > e else s <= cur < e
 
 
+_NON_HUMAN_PLATFORMS = {"cron", "subagent"}
+
+
+def _human_turn(platform=None, parent_session_id=None, **_kw) -> bool:
+    """True for the user's own interactive turns; False for cron and subagent work.
+
+    A cron job firing at 03:00 is not the user working, and a subagent's tool
+    failures are not the user going in circles. Both would otherwise receive
+    nudges meant for the user and feed the thrash detector.
+    """
+    if platform in _NON_HUMAN_PLATFORMS:
+        return False
+    return not parent_session_id
+
+
 def register(ctx):  # noqa: C901
     _wtools.bind_ctx(ctx)
     # ----------------------------------------------------------- tools
@@ -104,10 +119,31 @@ def register(ctx):  # noqa: C901
     # of a later session and nowhere else.
     _fresh_session = {"value": True}
 
+    # post_tool_call carries no platform, so pre_llm_call remembers which
+    # sessions belong to cron or subagents. Bounded: a long-lived gateway
+    # must not grow this forever.
+    _non_human_sessions: dict[str, None] = {}
+    _NON_HUMAN_MAX = 256
+
+    def _note_session(kwargs) -> bool:
+        """Record whether this hook call is human; returns True if it is."""
+        human = _human_turn(**kwargs)
+        sid = kwargs.get("session_id")
+        if not human and sid:
+            _non_human_sessions[sid] = None
+            while len(_non_human_sessions) > _NON_HUMAN_MAX:
+                _non_human_sessions.pop(next(iter(_non_human_sessions)))
+        return human
+
+    def _session_is_human(session_id) -> bool:
+        return not (session_id and session_id in _non_human_sessions)
+
     def on_session_start(**kwargs):
         """Refresh the activity table so a report is never stale."""
-        del kwargs
-        _fresh_session["value"] = True
+        # A cron session starting in the gateway is not the user coming back,
+        # so it must not arm the handoff for whichever chat speaks next.
+        if _note_session(kwargs):
+            _fresh_session["value"] = True
         try:
             _activity.sync_activity(days=90)
         except Exception:  # never break session startup
@@ -115,7 +151,9 @@ def register(ctx):  # noqa: C901
 
     def post_tool_call(tool_name=None, args=None, result=None, **kwargs):
         """Accumulate activity, and track whether work is currently going well."""
-        del args, kwargs
+        del args
+        if not _session_is_human(kwargs.get("session_id")):
+            return
         try:
             errored = _activity._is_error(result)
             # Transient, in-process only: feeds stopping-point detection.
@@ -198,7 +236,8 @@ def register(ctx):  # noqa: C901
         Injected as context so the agent speaks it in its own voice, arriving
         as part of the conversation rather than as an alarm.
         """
-        del kwargs
+        if not _note_session(kwargs):
+            return None  # cron and subagent turns: nothing to deliver, nothing to learn
         try:
             due = _winddown.should_nudge(recent=_storage.recent_outcomes())
             if not due:
