@@ -198,6 +198,7 @@ function ErrorState({ message, onRetry }) {
 
 function KairosPane({ ctx }) {
   const [data, setData] = useState(null)
+  const [pom, setPom] = useState(null)
   const [err, setErr] = useState(null)
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
@@ -213,6 +214,13 @@ function KairosPane({ ctx }) {
       }
     } catch (e) {
       setErr(backendError(e))
+    }
+    // Optional readout; an older backend without the route just hides it.
+    try {
+      const p = await ctx.rest('/pomodoro')
+      setPom(p && p.success ? p.pomodoro : null)
+    } catch (e) {
+      setPom(null)
     }
   }, [ctx])
 
@@ -422,6 +430,17 @@ function KairosPane({ ctx }) {
                 ? `guard on · ${data.guard.quiet_start}–${data.guard.quiet_end} · ${data.guard.mode}`
                 : 'quiet-hours guard off'
           })
+        : null,
+
+      // pomodoro clock, only when switched on
+      pom && pom.enabled
+        ? jsx('div', {
+            title: pom.why_silent || '',
+            style: { fontSize: '0.5938rem', color: 'var(--ui-text-tertiary)' },
+            children:
+              `${pom.ring} · ${pom.stretch_min} min` +
+              (pom.last_reset_reason ? ` · last reset: ${pom.last_reset_reason}` : '')
+          })
         : null
     ]
   })
@@ -489,6 +508,16 @@ const DELIVERY_COPY = {
 }
 // Legacy stored value from when a notification-only option existed.
 const deliveryValue = v => (v === 'notify' ? 'both' : v || 'inject')
+
+// One sentence each, shown as the input's tooltip rather than a paragraph.
+const POMODORO_FIELDS = [
+  { key: 'pomodoro_work_min', label: 'block', dflt: 25, min: 15, max: 120, step: 5,
+    copy: 'Minutes of attention per block. 25 is the classic.' },
+  { key: 'pomodoro_break_min', label: 'rest', dflt: 5, min: 3, max: 15, step: 1,
+    copy: "Minutes off the screen per rest. It's what the offer says, and the quiet after a turn ends that counts as one." },
+  { key: 'pomodoro_away_min', label: 'away', dflt: 8, min: 3, max: 30, step: 1,
+    copy: 'Silence from you this long while the agent is working counts as a rest. Raise it if you sit and watch long runs.' }
+]
 
 function Row({ label, hint, children }) {
   return jsxs('div', {
@@ -759,6 +788,57 @@ function KairosSettings({ ctx }) {
               style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary)' },
               children: 'min patience'
             })
+          ]
+        })
+      }),
+      Row({
+        label: 'Pomodoro',
+        hint: 'Every work block, offer a short rest — only at a clean stopping point, never mid-task.',
+        children: jsxs('div', {
+          style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
+          children: [
+            jsxs('label', {
+              style: { display: 'flex', gap: '5px', alignItems: 'center', fontSize: '0.75rem' },
+              children: [
+                jsx('input', {
+                  type: 'checkbox',
+                  checked: g.pomodoro_enabled === 'true',
+                  onChange: e => void save({ pomodoro_enabled: e.target.checked })
+                }),
+                'offer rests'
+              ]
+            }),
+            ...POMODORO_FIELDS.map(f =>
+              jsxs(
+                'label',
+                {
+                  title: f.copy,
+                  style: {
+                    display: 'flex',
+                    gap: '4px',
+                    alignItems: 'center',
+                    fontSize: '0.6875rem',
+                    color: 'var(--ui-text-tertiary)',
+                    opacity: g.pomodoro_enabled === 'true' ? 1 : 0.4
+                  },
+                  children: [
+                    f.label,
+                    jsx('input', {
+                      type: 'number',
+                      defaultValue: g[f.key] || f.dflt,
+                      min: f.min,
+                      max: f.max,
+                      step: f.step,
+                      disabled: g.pomodoro_enabled !== 'true',
+                      onBlur: e => void save({ [f.key]: parseInt(e.target.value, 10) }),
+                      style: { ...inputStyle, width: '56px' }
+                    }),
+                    'min'
+                  ]
+                },
+                f.key
+              )
+            )
           ]
         })
       }),
