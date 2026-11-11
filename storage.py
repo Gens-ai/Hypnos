@@ -126,6 +126,13 @@ CREATE TABLE IF NOT EXISTS handoff_seen (
     night TEXT PRIMARY KEY,
     at    REAL NOT NULL
 );
+
+-- The attention stretch: one clock per human, not per session. Reset by an
+-- observed silence, a declared rest, or an offer. Never by a session boundary.
+CREATE TABLE IF NOT EXISTS pomodoro_state (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
 
 
@@ -410,6 +417,25 @@ def recent_guard_events(limit: int = 20) -> list[dict[str, Any]]:
         "SELECT * FROM guard_events ORDER BY id DESC LIMIT ?", (limit,)
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+# ------------------------------------------------------------- pomodoro
+
+
+def get_pomodoro_state() -> dict[str, str]:
+    """Raw text rows. pomodoro.parse_state owns the keys, types and defaults."""
+    con = connect()
+    return {k: v for k, v in con.execute("SELECT key, value FROM pomodoro_state")}
+
+
+def set_pomodoro_state(values: dict[str, str]) -> None:
+    con = connect()
+    con.executemany(
+        "INSERT INTO pomodoro_state (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        [(k, str(v)) for k, v in values.items()],
+    )
+    con.commit()
 
 
 # ------------------------------------------------- nudges, snooze, check-ins

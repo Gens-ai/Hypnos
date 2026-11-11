@@ -48,6 +48,11 @@ DEFAULTS: dict[str, str] = {
     "ping_enabled": "false",
     "ping_every_min": "30",
     "ping_channel": "desktop",
+    # --- pomodoro: offer a short rest per block, only at a boundary. Opt-in.
+    "pomodoro_enabled": "false",
+    "pomodoro_work_min": "25",
+    "pomodoro_break_min": "5",
+    "pomodoro_away_min": "8",
 }
 
 
