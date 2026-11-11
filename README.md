@@ -44,7 +44,7 @@ You step away; the agent keeps working. More in
 
 ## The 90-second demo
 
-[kairos-demo-web.webm](https://github.com/user-attachments/assets/a47dc460-9159-4e93-8e1f-33170949947c)
+[Watch the 90-second demo](https://github.com/user-attachments/assets/a47dc460-9159-4e93-8e1f-33170949947c)
 
 ## Install
 
@@ -62,6 +62,7 @@ then puts it back.
 
 ## Contents
 
+- [The 90-second demo](#the-90-second-demo)
 - [Install](#install)
 - [Why it's called Kairos](#why-its-called-kairos)
 - [It can tell whether you're at a clean break](#it-can-tell-whether-youre-at-a-clean-break)
