@@ -44,7 +44,7 @@ You step away; the agent keeps working. More in
 
 ## The 90-second demo:
 
-<img width="1280" height="720" alt="still_47" src="https://github.com/user-attachments/assets/1d8d23e3-608e-4d6a-8c0f-dd3312364e68" />
+[kairos-demo-web.webm](https://github.com/user-attachments/assets/991bcb37-c691-473a-98b0-5045e6ad1dbe)
 
 ## Install
 
