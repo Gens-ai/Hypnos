@@ -609,10 +609,59 @@ function useGoals(ctx, opts = {}) {
   return { g, commits, save, saving, fallback }
 }
 
-function Page({ title, intro, saving, children }) {
+// The four settings pages, in rail order. '' is the landing page.
+const SETTINGS_PAGES = [
+  { id: '', title: 'Kairos' },
+  { id: 'nudges', title: 'Nudges' },
+  { id: 'pomodoro', title: 'Pomodoro' },
+  { id: 'schedule', title: 'Schedule' }
+]
+
+// Tabs across the top of every settings page, mirroring the rail. Hidden on
+// desktop builds without the deep-link helper, where the rail is the only way.
+function SettingsTabs(current) {
+  if (typeof sdk.pluginSettingsHref !== 'function') return null
+  return jsx('div', {
+    style: {
+      display: 'flex',
+      gap: '14px',
+      borderBottom: '1px solid var(--ui-border, currentColor)',
+      marginBottom: '14px'
+    },
+    children: SETTINGS_PAGES.map(p => {
+      const on = p.id === current
+      return jsx(
+        'a',
+        {
+          href: '#',
+          'aria-current': on ? 'page' : undefined,
+          onClick: e => {
+            e.preventDefault()
+            if (!on) host.navigate(sdk.pluginSettingsHref('kairos', p.id || undefined))
+          },
+          style: {
+            fontSize: '0.75rem',
+            padding: '0 0 6px',
+            marginBottom: '-1px',
+            textDecoration: 'none',
+            cursor: on ? 'default' : 'pointer',
+            color: on ? 'var(--ui-text-primary)' : 'var(--ui-text-tertiary)',
+            fontWeight: on ? 600 : 400,
+            borderBottom: on ? '2px solid var(--ui-text-primary)' : '2px solid transparent'
+          },
+          children: p.title
+        },
+        p.id || 'main'
+      )
+    })
+  })
+}
+
+function Page({ id, title, intro, saving, children }) {
   return jsxs('div', {
     style: { padding: '18px', maxWidth: '620px', display: 'flex', flexDirection: 'column' },
     children: [
+      SettingsTabs(id),
       jsx('div', {
         style: { fontSize: '0.8125rem', fontWeight: 600, paddingBottom: '4px' },
         children: title
@@ -659,6 +708,7 @@ function KairosSettings({ ctx }) {
   const { g, save } = s
   const noTarget = !g.target_bedtime
   return Page({
+    id: '',
     title: 'Kairos',
     intro: 'There is no correct bedtime — Kairos measures you only against the one you set.',
     saving: s.saving,
@@ -735,6 +785,7 @@ function KairosNudges({ ctx }) {
   const { g, save } = s
 
   return Page({
+    id: 'nudges',
     title: 'Nudges',
     intro: 'How and when the bedtime wind-down reaches you.',
     saving: s.saving,
@@ -897,6 +948,7 @@ function KairosPomodoroSettings({ ctx }) {
   const { g, save } = s
 
   return Page({
+    id: 'pomodoro',
     title: 'Pomodoro',
     intro: 'A short rest offered once per work block, and only when the work is at a clean spot. Off until you switch it on.',
     saving: s.saving,
@@ -963,6 +1015,7 @@ function KairosSchedule({ ctx }) {
   const { g, save } = s
   const commits = s.commits
   return Page({
+    id: 'schedule',
     title: 'Schedule',
     intro: 'Changes to your target that happen over days, and the morning question.',
     saving: s.saving,
