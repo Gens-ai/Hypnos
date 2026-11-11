@@ -138,6 +138,10 @@ As it arrives in a chat:
 
 ![A pomodoro offer delivered in a Hermes chat](docs/screenshots/pomodoro-nudge.png)
 
+*The koi swimming behind the screenshots on this page are from
+[ASCII Worlds](https://github.com/dudicslevente/hermes-ascii-worlds), a
+separate Hermes plugin.*
+
 It is off until you switch it on in Settings → Plugins → Kairos → Pomodoro.
 
 **It can't see focus, only the work.** "At a boundary" means: the recent tool
