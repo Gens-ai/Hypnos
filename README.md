@@ -42,9 +42,9 @@ up, it waits for a clean spot and then offers the rest:
 You step away; the agent keeps working. More in
 [The timer that doesn't tick](#the-timer-that-doesnt-tick).
 
-## The 90-second demo:
+## The 90-second demo
 
-[kairos-demo-web.webm](https://github.com/user-attachments/assets/991bcb37-c691-473a-98b0-5045e6ad1dbe)
+[kairos-demo-web.webm](https://github.com/user-attachments/assets/a47dc460-9159-4e93-8e1f-33170949947c)
 
 ## Install
 
