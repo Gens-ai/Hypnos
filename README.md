@@ -4,9 +4,10 @@
 
 It's a Hermes Agent plugin that reads your agent's own session history to find
 the moments worth saying something at: a wind-down when you're at a natural
-break rather than mid-thought, the note you left yourself last night handed
-back when you return, a suggestion to step away when the work has stopped
-moving forward. It reports whether your sleep affects your output only when
+break rather than mid-thought, a pomodoro rest that waits for a clean spot
+instead of ringing, the note you left yourself last night handed back when
+you return, a suggestion to step away when the work has stopped moving
+forward. It reports whether your sleep affects your output only when
 the sample actually supports it, and says nothing the rest of the time.
 
 ```
@@ -22,6 +23,24 @@ the sample actually supports it, and says nothing the rest of the time.
 The bar fills with night as your bedtime gets closer, so you can read the
 runway without reading a sentence. The flower only turns up on the last rung,
 once the mark has already gone past. It stays meaningful by being rare.
+
+It does the same thing for work blocks, with no bedtime involved: a pomodoro
+that keeps the rhythm and drops the alarm. Switch it on and, once a block is
+up, it waits for a clean spot and then offers the rest:
+
+```
+> ○  ●○○○ · 27 min on this stretch
+>
+> Clean spot — the last few calls all went through.
+> The deal with this pattern is that five minutes now buys back the next
+> twenty-five. Want to step away while I get on with this? It'll be here
+> when you're back, and I'll note where we are if that helps.
+>
+> · "skip" and I'll ask again next block  · "not today" and I'll stop
+```
+
+You step away; the agent keeps working. More in
+[The timer that doesn't tick](#the-timer-that-doesnt-tick).
 
 ## Install
 
@@ -42,8 +61,8 @@ then puts it back.
 - [Install](#install)
 - [Why it's called Kairos](#why-its-called-kairos)
 - [It can tell whether you're at a clean break](#it-can-tell-whether-youre-at-a-clean-break)
-- [Two other moments it watches for](#two-other-moments-it-watches-for)
 - [The timer that doesn't tick](#the-timer-that-doesnt-tick)
+- [Two other moments it watches for](#two-other-moments-it-watches-for)
 - [Your agent was there](#your-agent-was-there)
 - [There is no correct bedtime](#there-is-no-correct-bedtime)
 - [You pick how much it talks](#you-pick-how-much-it-talks)
@@ -92,12 +111,72 @@ where it stopped, the obvious next move. The moment passes whether or not you
 were ready for it, which is a terrible property in a note-taking system, so
 the file goes on disk.
 
+## The timer that doesn't tick
+
+A pomodoro timer is chronos at its purest: a clock that rings whatever you
+are in the middle of, on purpose, because the technique doesn't trust you to
+stop on your own. This is the kairos version. It keeps the rhythm — a block
+of attention, a short rest, every fourth rest a longer one — and drops the
+alarm. It speaks only when the work is observably at a boundary, and the ring
+of dots counts the blocks:
+
+```
+> ○  ●●●● · fourth block · 26 min on this stretch
+>
+> Clean spot — the last few calls all went through.
+> This is the longer rest the pattern asks for — twenty or so, not five.
+> Want to take it while I keep at this?
+>
+> · "skip" and I'll ask again next block  · "not today" and I'll stop
+```
+
+The agent delivers that and carries on with what you asked. You are the one
+who may step away; the work keeps going. That is the part a kitchen timer
+can't do: the break is when something still gets done.
+
+It is off until you switch it on in settings.
+
+**It can't see focus, only the work.** "At a boundary" means: the recent tool
+calls succeeded, the last turn finished rather than being stopped, and you
+didn't fire back within a minute of the agent handing over. If the block is
+up but you're mid-flight, it holds for the same patience window as the
+wind-down, then speaks at the next message anyway — at tone `gentle` it
+never does, and misses the block instead.
+
+**It can only speak when spoken to.** There is no timer thread. It is checked
+when you send a message, which is the nearest thing to a pause in your
+thinking the plugin can see. Reading a long output for ten minutes without
+typing means nothing fires until you type.
+
+**Only your actions move the clock.** Sending a message and hitting stop
+count; agent tool calls don't, because they say nothing about whether
+anyone is watching. A rest is inferred two ways: nothing from you for the
+*away* time while the agent worked (send it on a 15-minute job, come back
+when it's done), or nothing at all for the *rest* time after the agent
+handed back. Twenty minutes or more also restarts the four-block cycle. Say
+"taking five" and it is recorded directly.
+
+The chosen error: if you sit and watch a long run without touching anything,
+it credits you with a rest you didn't take and stays quiet. It would rather
+miss an offer than make one to someone just back from a break. A side effect
+is that long delegated runs rarely hear from it; it is most present in
+tight back-and-forth sessions.
+
+Three untaken offers in a row and it goes quiet until it sees a rest. "not
+today" lasts until you've been away five hours or more — long enough to have
+slept — so it doesn't end at midnight in the middle of a session. Bedtime
+takes priority: inside the wind-down's window, this stays silent.
+
+Four settings, one row: on/off, **block** (25), **rest** (5), **away** (8).
+`kairos_pomodoro` reports `last_reset_reason` — `"away 11m"`, `"idle 6m"` —
+so you can see what the away value is doing and move it.
+
 ## Two other moments it watches for
 
-A bedtime is one opportune moment. The name implies the rest, and two more
-are wired in. Both follow the same rules as the wind-down: they offer, they
-end on a question, and they report what was observed rather than what it
-concluded about you.
+Bedtime and the end of a work block are two opportune moments. The name
+implies more, and two others are wired in. Both follow the same rules: they
+offer, they end on a question, and they report what was observed rather than
+what it concluded about you.
 
 **The note you left yourself.** Kairos writes down where the work got to
 when you stop. The most recent note is handed back once, on the first turn
@@ -141,62 +220,6 @@ calls minimum before it will judge a session at all, twice a night maximum,
 ninety minutes between mentions, silent at tone `off` or when snoozed. And
 it says nothing inside the wind-down's own window, so you are never handed
 two different things to answer in one turn.
-
-## The timer that doesn't tick
-
-An opt-in pomodoro, off by default. It keeps the rhythm of the technique — a
-block of attention, a short rest, every fourth rest a longer one — and drops
-the alarm. A classic pomodoro rings mid-sentence on purpose; this one only
-speaks when the work is observably at a boundary:
-
-```
-> ○  ●○○○ · 27 min on this stretch
->
-> Clean spot — the last few calls all went through.
-> The deal with this pattern is that five minutes now buys back the next
-> twenty-five. Want to step away while I get on with this? It'll be here
-> when you're back, and I'll note where we are if that helps.
->
-> · "skip" and I'll ask again next block  · "not today" and I'll stop
-```
-
-The agent delivers that and carries on with what you asked. You are the one
-who may step away; the work keeps going.
-
-**It can't see focus, only the work.** "At a boundary" means: the recent tool
-calls succeeded, the last turn finished rather than being stopped, and you
-didn't fire back within a minute of the agent handing over. If the block is
-up but you're mid-flight, it holds for the same patience window as the
-wind-down, then speaks at the next message anyway — at tone `gentle` it
-never does, and misses the block instead.
-
-**It can only speak when spoken to.** There is no timer thread. It is checked
-when you send a message, which is the nearest thing to a pause in your
-thinking the plugin can see. Reading a long output for ten minutes without
-typing means nothing fires until you type.
-
-**Only your actions move the clock.** Sending a message and hitting stop
-count; agent tool calls don't, because they say nothing about whether
-anyone is watching. A rest is inferred two ways: nothing from you for the
-*away* time while the agent worked (send it on a 15-minute job, come back
-when it's done), or nothing at all for the *rest* time after the agent
-handed back. Twenty minutes or more also restarts the four-block cycle. Say
-"taking five" and it is recorded directly.
-
-The chosen error: if you sit and watch a long run without touching anything,
-it credits you with a rest you didn't take and stays quiet. It would rather
-miss an offer than make one to someone just back from a break. A side effect
-is that long delegated runs rarely hear from it; it is most present in
-tight back-and-forth sessions.
-
-Three untaken offers in a row and it goes quiet until it sees a rest. "not
-today" lasts until you've been away five hours or more — long enough to have
-slept — so it doesn't end at midnight in the middle of a session. Bedtime takes priority: inside the
-wind-down's window, this stays silent.
-
-Four settings, one row: on/off, **block** (25), **rest** (5), **away** (8).
-`kairos_pomodoro` reports `last_reset_reason` — `"away 11m"`, `"idle 6m"` —
-so you can see what the away value is doing and move it.
 
 ## Your agent was there
 
