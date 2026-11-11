@@ -32,6 +32,7 @@ from . import coach_schemas as _cschemas
 from . import coach_tools as _ctools
 from . import goals as _goals
 from . import moments as _moments
+from . import pomodoro as _pomodoro
 from . import schemas as _schemas
 from . import storage as _storage
 from . import tools as _tools
@@ -76,6 +77,25 @@ def _in_quiet_hours(now: _dt.datetime, start: str, end: str) -> bool:
 
 
 _NON_HUMAN_PLATFORMS = {"cron", "subagent"}
+
+# Delivered ahead of a pomodoro offer. The agent keeps working: the user is
+# the one who may step away, so nothing waits on an answer.
+POMODORO_INSTRUCTION = (
+    "[Kairos] Deliver the block below to the user verbatim, as its own quoted "
+    "block, before anything else you say -- then carry on with the user's "
+    "request as normal. Do not wait for an answer to the offer. Do not mention "
+    "the hour, do not suggest they are tired or have been working too long, and "
+    "do not interpret the block count. If they say 'skip' or 'keep going', call "
+    "kairos_pomodoro(action='skip'); 'not today' -> kairos_pomodoro(action="
+    "'skip', scope='today'); 'taking five', 'brb', 'back in 10' -> "
+    "kairos_pomodoro(action='rest'). When they come back from a rest, say "
+    "nothing about it.\n\n"
+)
+
+
+def _now_ts() -> float:
+    """Indirection so the hook tests can drive the clock."""
+    return _dt.datetime.now().timestamp()
 
 
 def _human_turn(platform=None, parent_session_id=None, **_kw) -> bool:
@@ -138,6 +158,16 @@ def register(ctx):  # noqa: C901
     def _session_is_human(session_id) -> bool:
         return not (session_id and session_id in _non_human_sessions)
 
+    # Per-turn facts for the pomodoro's boundary check, in-process and
+    # bounded. Keyed by turn_id; popped when the turn ends.
+    _turn_calls: dict[str, int] = {}
+    _turn_started: dict[str, float] = {}
+    _TURNS_MAX = 64
+
+    def _bounded(d: dict) -> None:
+        while len(d) > _TURNS_MAX:
+            d.pop(next(iter(d)))
+
     def on_session_start(**kwargs):
         """Refresh the activity table so a report is never stale."""
         # A cron session starting in the gateway is not the user coming back,
@@ -154,6 +184,10 @@ def register(ctx):  # noqa: C901
         del args
         if not _session_is_human(kwargs.get("session_id")):
             return
+        tid = kwargs.get("turn_id")
+        if tid:
+            _turn_calls[tid] = _turn_calls.get(tid, 0) + 1
+            _bounded(_turn_calls)
         try:
             errored = _activity._is_error(result)
             # Transient, in-process only: feeds stopping-point detection.
@@ -231,13 +265,36 @@ def register(ctx):  # noqa: C901
         return None
 
     def pre_llm_call(**kwargs):
-        """Deliver the wind-down nudge between turns, never mid-tool-chain.
+        """Deliver at most one moment between turns, never mid-tool-chain.
 
-        Injected as context so the agent speaks it in its own voice, arriving
+        Priority: wind-down, then handoff, then the thrash break, then the
+        pomodoro offer. Injected as context so the agent speaks it in its own voice, arriving
         as part of the conversation rather than as an alarm.
         """
         if not _note_session(kwargs):
             return None  # cron and subagent turns: nothing to deliver, nothing to learn
+        now = _now_ts()
+        tid = kwargs.get("turn_id")
+        if tid:
+            _turn_started[tid] = now
+            _bounded(_turn_started)
+
+        out = _bedtime_or_other()
+        # The pomodoro clock moves on every human turn, even when another
+        # moment owns this one -- you did speak. It only gets the turn if
+        # nothing else wanted it: one moment per turn.
+        try:
+            pom = _pomodoro.on_user_turn(
+                now, recent=_storage.recent_outcomes(), may_speak=out is None
+            )
+        except Exception:
+            pom = None
+        if out is None and pom:
+            return {"context": POMODORO_INSTRUCTION + pom["text"]}
+        return out
+
+    def _bedtime_or_other():
+        """The wind-down if one is due, else the other moments, else None."""
         try:
             due = _winddown.should_nudge(recent=_storage.recent_outcomes())
             if not due:
@@ -282,6 +339,25 @@ def register(ctx):  # noqa: C901
         except Exception:
             return None
 
+    def on_session_end(**kwargs):
+        """Once per turn: how the agent handed back. Stop is a human action."""
+        if not _note_session(kwargs) or not _session_is_human(kwargs.get("session_id")):
+            return
+        try:
+            now = _now_ts()
+            tid = kwargs.get("turn_id")
+            started = _turn_started.pop(tid, None) if tid else None
+            _pomodoro.on_turn_end(
+                now,
+                completed=bool(kwargs.get("completed")),
+                interrupted=bool(kwargs.get("interrupted")),
+                failed=bool(kwargs.get("failed")),
+                calls=_turn_calls.pop(tid, 0) if tid else 0,
+                turn_min=int((now - started) // 60) if started else 0,
+            )
+        except Exception:
+            pass
+
     def pre_tool_call(tool_name=None, args=None, task_id=None, **kwargs):
         """Gate destructive work in quiet hours. Opt-in tones only."""
         del task_id, kwargs
@@ -316,6 +392,7 @@ def register(ctx):  # noqa: C901
     ctx.register_hook("on_session_start", on_session_start)
     ctx.register_hook("post_tool_call", post_tool_call)
     ctx.register_hook("pre_llm_call", pre_llm_call)
+    ctx.register_hook("on_session_end", on_session_end)
     ctx.register_hook("pre_tool_call", pre_tool_call)
 
     # ----------------------------------------------------------- skills
