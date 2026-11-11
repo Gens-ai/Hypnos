@@ -48,11 +48,12 @@ You step away; the agent keeps working. More in
 
 ## Install
 
-[Install in Hermes](hermes://plugin/install?repo=Gens-ai/Kairos&enable=1)
+Kairos is in the official Hermes plugin catalog.
+
+[Install in Hermes](hermes://plugin/install?catalog=kairos)
 
 ```bash
-hermes plugins install Gens-ai/Kairos
-hermes plugins enable kairos
+hermes plugins install kairos
 ```
 
 Then talk to it like a person. *"I want to be in bed by 2:30, aiming for
