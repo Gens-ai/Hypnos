@@ -152,3 +152,138 @@ def test_not_today_has_a_hard_backstop():
     # Someone who never steps away for three hours still gets it back.
     s = _state(stretch_start=1000.0, last_human_at=2000.0, paused=1, paused_until=2100.0)
     assert pomodoro.touch(s, CFG, now=2200.0)["paused"] == 0
+
+
+# ------------------------------------------------------------ boundary facts
+
+OK = [{"tool": "terminal", "error": False, "at": 0}] * 3
+BAD = OK + [{"tool": "terminal", "error": True, "at": 0}]
+T = 100_000.0
+
+
+def test_clean_ok_and_a_pause_is_a_boundary():
+    s = _state(last_turn_ended=T - 180, last_turn_ok=True, last_turn_calls=7,
+               last_turn_min=3)
+    b = pomodoro.boundary_state(OK, s, now=T)
+    assert b["at_boundary"]
+    assert (b["last_turn_calls"], b["last_turn_min"]) == (7, 3)
+    assert b["observed"]
+
+
+def test_tight_loop_is_not_a_boundary():
+    s = _state(last_turn_ended=T - 20)
+    b = pomodoro.boundary_state(OK, s, now=T)
+    assert not b["at_boundary"] and b["tight_loop"]
+
+
+def test_instant_reply_after_a_long_run_is_not_a_boundary():
+    # Idle is measured from handback, not from your last message: a 3-minute
+    # run answered 10 s after it finished is someone waiting on it.
+    s = _state(last_human_at=T - 190, last_turn_ended=T - 10)
+    assert not pomodoro.boundary_state(OK, s, now=T)["at_boundary"]
+
+
+def test_stopped_turn_is_not_a_boundary():
+    s = _state(last_turn_ended=T - 300, last_turn_ok=False)
+    assert not pomodoro.boundary_state(OK, s, now=T)["at_boundary"]
+
+
+def test_failures_are_not_a_boundary():
+    s = _state(last_turn_ended=T - 300)
+    b = pomodoro.boundary_state(BAD, s, now=T)
+    assert not b["at_boundary"] and not b["clean"]
+
+
+# ------------------------------------------------------------------- gates
+
+ON = dict(pomodoro.config({"pomodoro_enabled": "true", "tone": "encouraging"}))
+
+
+def _ask(state=None, recent=OK, cfg=ON, **kw):
+    args = dict(now=T, state=state or _due(), recent=recent, cfg=cfg,
+                snoozed=False, bedtime_delta=None, last_break_at=None)
+    args.update(kw)
+    return pomodoro.should_suggest_pomodoro(**args)
+
+
+def _due(minutes=25, **kw):
+    base = dict(stretch_start=T - minutes * 60, last_human_at=T - 240,
+                last_turn_ended=T - 180, last_turn_ok=True)
+    base.update(kw)
+    return _state(**base)
+
+
+def test_due_at_a_boundary_speaks():
+    out = _ask()
+    assert out["speak"]
+    assert (out["block"], out["long_rest"], out["repeat"]) == (1, False, 0)
+    assert out["clean"] is True
+    assert out["next_blocks_done"] == 1
+
+
+def test_disabled_is_silent():
+    out = _ask(cfg=dict(ON, enabled=False))
+    assert not out["speak"] and out["why"]
+
+
+def test_tone_off_is_silent():
+    assert not _ask(cfg=dict(ON, tone="off"))["speak"]
+
+
+def test_snoozed_is_silent():
+    assert not _ask(snoozed=True)["speak"]
+
+
+def test_paused_is_silent():
+    assert not _ask(state=_due(paused=1))["speak"]
+
+
+def test_bedtime_band_belongs_to_the_wind_down():
+    assert not _ask(bedtime_delta=-30)["speak"]
+    assert not _ask(bedtime_delta=100)["speak"]
+    assert _ask(bedtime_delta=-300)["speak"]
+
+
+def test_not_due_until_the_block_is_up():
+    assert not _ask(state=_due(24))["speak"]
+    assert _ask(state=_due(25))["speak"]
+
+
+def test_three_ignored_offers_go_quiet():
+    assert not _ask(state=_due(ignored_streak=3))["speak"]
+
+
+def test_a_recent_break_offer_counts_as_this_block():
+    assert not _ask(last_break_at=T - 10 * 60)["speak"]
+    assert _ask(last_break_at=T - 30 * 60)["speak"]
+
+
+def test_mid_flight_holds():
+    out = _ask(state=_due(last_turn_ended=T - 15))
+    assert not out["speak"] and out["hold"]
+
+
+def test_patience_exhausted_speaks_anyway():
+    s = _due(last_turn_ended=T - 15, pending_since=T - ON["patience_min"] * 60)
+    out = _ask(state=s)
+    assert out["speak"] and out["clean"] is False
+
+
+def test_gentle_never_speaks_mid_flight():
+    s = _due(last_turn_ended=T - 15, pending_since=T - 999 * 60)
+    out = _ask(state=s, cfg=dict(ON, tone="gentle"))
+    assert not out["speak"]
+
+
+def test_not_holding_for_a_clean_break_speaks_mid_flight():
+    out = _ask(state=_due(last_turn_ended=T - 15), cfg=dict(ON, prefer_clean=False))
+    assert out["speak"]
+
+
+def test_the_fourth_block_is_the_long_rest():
+    out = _ask(state=_due(blocks_done=3))
+    assert (out["block"], out["long_rest"], out["next_blocks_done"]) == (4, True, 0)
+
+
+def test_repeat_follows_the_ignored_streak():
+    assert _ask(state=_due(ignored_streak=2))["repeat"] == 2

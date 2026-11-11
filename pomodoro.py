@@ -175,3 +175,127 @@ def touch(state: dict[str, Any], cfg: dict[str, Any], now: float,
 def stretch_min(state: dict[str, Any], now: float) -> int:
     start = float(state.get("stretch_start") or 0.0)
     return int((now - start) // 60) if start else 0
+
+
+# ------------------------------------------------------------ boundary facts
+
+
+def boundary_state(recent: list[dict[str, Any]], state: dict[str, Any],
+                   now: float) -> dict[str, Any]:
+    """Is the work at a boundary? Facts only, like winddown.stop_state.
+
+    ``idle_since_handback_sec`` is measured from when the agent last handed
+    back, not from your last message -- otherwise a 3-minute run answered the
+    instant it finished would pass for a thoughtful pause.
+    """
+    from . import winddown as _winddown  # noqa: PLC0415
+
+    stop = _winddown.stop_state(recent or [])
+    ended = float(state.get("last_turn_ended") or 0.0)
+    idle = (now - ended) if ended else None
+    tight = idle is not None and idle < TIGHT_LOOP_SEC
+    ok = bool(state.get("last_turn_ok", True))
+    return {
+        "clean": stop["clean"],
+        "observed": stop["observed"],
+        "recent_errors": stop["recent_errors"],
+        "last_turn_ok": ok,
+        "idle_since_handback_sec": None if idle is None else int(idle),
+        "tight_loop": tight,
+        "last_turn_calls": int(state.get("last_turn_calls") or 0),
+        "last_turn_min": int(state.get("last_turn_min") or 0),
+        "at_boundary": stop["clean"] and ok and not tight,
+    }
+
+
+# ------------------------------------------------------------------- gates
+
+
+def should_suggest_pomodoro(
+    now: float,
+    state: dict[str, Any],
+    recent: list[dict[str, Any]],
+    cfg: dict[str, Any],
+    snoozed: bool = False,
+    bedtime_delta: Optional[int] = None,
+    last_break_at: Optional[float] = None,
+) -> dict[str, Any]:
+    """Decide whether to offer a rest right now. Pure: everything is passed in.
+
+    Always returns a dict. ``speak`` False carries ``why`` (and ``hold`` when
+    the offer is due but waiting for a boundary, so the caller can start the
+    patience clock). Gates, most absolute first:
+
+      1. disabled, or tone off                -> silent
+      2. "not tonight" (the wind-down snooze) -> silent
+      3. "not today"                          -> silent
+      4. inside the bedtime band              -> silent, the wind-down owns it
+      5. block not up yet                     -> silent
+      6. three offers ignored                 -> silent until a rest
+      7. a break offer inside this block      -> silent, that was the offer
+      8. not at a boundary                    -> hold, up to the patience
+         window; never at 'gentle'
+    """
+    from . import moments as _moments  # noqa: PLC0415
+    from . import winddown as _winddown  # noqa: PLC0415
+
+    def quiet(why: str, **kw: Any) -> dict[str, Any]:
+        return {"speak": False, "why": why, "hold": False, **kw}
+
+    if not cfg.get("enabled"):
+        return quiet("Pomodoro is off in settings.")
+    tone = cfg.get("tone") or "encouraging"
+    if tone == "off":
+        return quiet("Tone is 'off' — measurement only.")
+    if snoozed:
+        return quiet("Snoozed for tonight ('not tonight').")
+    if state.get("paused"):
+        return quiet("Paused ('not today') until you've been away a while.")
+    if bedtime_delta is not None and (
+        -_moments.BEDTIME_PRIORITY_MIN <= bedtime_delta <= _winddown.PAST_LIMIT_MIN
+    ):
+        return quiet("Close to your bedtime target — the wind-down has this hour.")
+
+    mins = stretch_min(state, now)
+    work = cfg["work_min"]
+    if mins < work:
+        return quiet(f"{mins} of {work} min into this block.")
+
+    ignored = int(state.get("ignored_streak") or 0)
+    if ignored >= MAX_IGNORED:
+        return quiet(f"{ignored} offers in a row went untaken; quiet until a rest.")
+
+    if last_break_at is not None and now - last_break_at < work * 60:
+        return quiet("A break was offered inside this block already.")
+
+    b = boundary_state(recent, state, now)
+    waited = 0
+    if not b["at_boundary"]:
+        since = float(state.get("pending_since") or 0.0)
+        if tone in _winddown.CLEAN_ONLY:
+            return quiet("Due, but 'gentle' only speaks at a clean spot.", hold=True,
+                         boundary=b)
+        if cfg.get("prefer_clean", True):
+            waited = int((now - since) // 60) if since else 0
+            if not since or waited < cfg["patience_min"]:
+                return quiet(
+                    f"Due; holding for a clean spot ({waited} of "
+                    f"{cfg['patience_min']} min patience).",
+                    hold=True, boundary=b,
+                )
+
+    block = int(state.get("blocks_done") or 0) % BLOCKS_PER_CYCLE + 1
+    long_rest = block == BLOCKS_PER_CYCLE
+    return {
+        "speak": True,
+        "why": "",
+        "hold": False,
+        "block": block,
+        "long_rest": long_rest,
+        "next_blocks_done": 0 if long_rest else block,
+        "repeat": ignored,
+        "stretch_min": mins,
+        "clean": b["at_boundary"],
+        "boundary": b,
+        "waited_for_break_min": waited,
+    }
