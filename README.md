@@ -134,7 +134,7 @@ The agent delivers that and carries on with what you asked. You are the one
 who may step away; the work keeps going. That is the part a kitchen timer
 can't do: the break is when something still gets done.
 
-It is off until you switch it on in settings.
+It is off until you switch it on in Settings → Plugins → Kairos → Pomodoro.
 
 **It can't see focus, only the work.** "At a boundary" means: the recent tool
 calls succeeded, the last turn finished rather than being stopped, and you
@@ -167,7 +167,8 @@ today" lasts until you've been away five hours or more — long enough to have
 slept — so it doesn't end at midnight in the middle of a session. Bedtime
 takes priority: inside the wind-down's window, this stays silent.
 
-Four settings, one row: on/off, **block** (25), **rest** (5), **away** (8).
+Four settings on its own settings page — on/off, **block** (25), **rest**
+(5), **away** (8) — under a live readout of where the clock is.
 `kairos_pomodoro` reports `last_reset_reason` — `"away 11m"`, `"idle 6m"` —
 so you can see what the away value is doing and move it.
 
@@ -540,7 +541,7 @@ the knowing happens where the work is, the telling can reach your pocket.
 
 Both delivery paths share a single `nudge_log`, so the spacing rule holds
 across them: you will not get a scheduled ping and an in-chat nudge for the
-same moment. The ping has its own switch in settings, so you can silence it
+same moment. The ping has its own switch under Settings → Kairos → Nudges, so you can silence it
 without going back to hunt down the cron job.
 
 **Out of session it will not pretend to know what you're doing.** The
@@ -564,7 +565,8 @@ hermes cron create "30 13 * * *" \
 
 One package, both SDKs. A right-hand pane and a `/kairos` page with the live
 histogram, a 21-night sleep track, an inline log box and the current verdict,
-plus a `☾` chip in the status bar, a ⌘K command, and a settings page. Off
+plus a `☾` chip in the status bar, a ⌘K command, and a settings page split into Kairos, Nudges, Pomodoro and
+Schedule. Off
 until you enable it in Capabilities → Plugins.
 
 ![The Kairos pane](docs/screenshots/pane.png)
@@ -573,7 +575,7 @@ until you enable it in Capabilities → Plugins.
 ![Settings, lower half](docs/screenshots/settings-2.png)
 
 Reach the page with ⌘K → **Open Kairos**, or turn on a sidebar link in
-settings. That link is **off by default**: a permanent row for something you
+Kairos settings. That link is **off by default**: a permanent row for something you
 open now and then is clutter, and the page is reachable without it.
 
 It stays inside the plugin SDK surface: no prototype patching, no `eval`, no

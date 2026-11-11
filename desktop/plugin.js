@@ -3,6 +3,7 @@
 // no app-markup queries, no DOM observers. Data comes from this package's
 // own backend namespace via ctx.rest.
 import { host, haptic, useValue } from '@hermes/plugin-sdk'
+import * as sdk from '@hermes/plugin-sdk'
 import { jsx, jsxs } from 'react/jsx-runtime'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -553,9 +554,10 @@ const inputStyle = {
   color: 'var(--ui-text-primary)'
 }
 
-function KairosSettings({ ctx }) {
+// Shared by every settings sub-page: each loads the goals it shows and
+// saves through the same route, so pages never disagree about a value.
+function useGoals(ctx, opts = {}) {
   const [g, setG] = useState(null)
-  const [navOn, setNavOn] = useState(() => ctx.storage.get(NAV_KEY, false))
   const [commits, setCommits] = useState([])
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
@@ -564,7 +566,9 @@ function KairosSettings({ ctx }) {
     try {
       const [gr, cr] = await Promise.all([
         ctx.rest('/goals'),
-        ctx.rest('/commitments', { method: 'POST', body: { action: 'list' } })
+        opts.commitments
+          ? ctx.rest('/commitments', { method: 'POST', body: { action: 'list' } })
+          : null
       ])
       if (gr && gr.success === false) { setErr(backendError(gr)); return }
       setG(gr.goals)
@@ -573,7 +577,7 @@ function KairosSettings({ ctx }) {
     } catch (e) {
       setErr(backendError(e))
     }
-  }, [ctx])
+  }, [ctx, opts.commitments])
 
   useEffect(() => { void load() }, [load])
 
@@ -596,29 +600,22 @@ function KairosSettings({ ctx }) {
     [ctx]
   )
 
-  if (err) {
-    return jsx(ErrorState, { message: err, onRetry: load })
-  }
-  if (!g) {
-    return jsx('div', {
-      style: { padding: '16px', fontSize: '0.75rem', color: 'var(--ui-text-tertiary)' },
-      children: 'Loading…'
-    })
-  }
+  const fallback = err
+    ? jsx(ErrorState, { message: err, onRetry: load })
+    : jsx('div', {
+        style: { padding: '16px', fontSize: '0.75rem', color: 'var(--ui-text-tertiary)' },
+        children: 'Loading…'
+      })
+  return { g, commits, save, saving, fallback }
+}
 
-  const noTarget = !g.target_bedtime
-
+function Page({ title, intro, saving, children }) {
   return jsxs('div', {
-    style: {
-      padding: '18px',
-      maxWidth: '620px',
-      display: 'flex',
-      flexDirection: 'column'
-    },
+    style: { padding: '18px', maxWidth: '620px', display: 'flex', flexDirection: 'column' },
     children: [
       jsx('div', {
         style: { fontSize: '0.8125rem', fontWeight: 600, paddingBottom: '4px' },
-        children: 'Kairos'
+        children: title
       }),
       jsx('div', {
         style: {
@@ -627,10 +624,45 @@ function KairosSettings({ ctx }) {
           lineHeight: 1.5,
           paddingBottom: '18px'
         },
-        children:
-          'There is no correct bedtime — Kairos measures you only against the one you set.'
+        children: intro
       }),
+      ...children,
+      saving
+        ? jsx('div', {
+            style: { fontSize: '0.625rem', color: 'var(--ui-text-tertiary)' },
+            children: 'saving…'
+          })
+        : null
+    ]
+  })
+}
 
+// Deep link to another Kairos settings sub-page. Older desktop builds may
+// not export the helper, in which case the text simply isn't a link.
+function settingsLink(page, label) {
+  const href = typeof sdk.pluginSettingsHref === 'function'
+    ? sdk.pluginSettingsHref('kairos', page)
+    : null
+  if (!href) return label
+  return jsx('a', {
+    href: '#',
+    onClick: e => { e.preventDefault(); host.navigate(href) },
+    style: { color: 'inherit', textDecoration: 'underline', cursor: 'pointer' },
+    children: label
+  })
+}
+
+function KairosSettings({ ctx }) {
+  const s = useGoals(ctx)
+  const [navOn, setNavOn] = useState(() => ctx.storage.get(NAV_KEY, false))
+  if (!s.g) return s.fallback
+  const { g, save } = s
+  const noTarget = !g.target_bedtime
+  return Page({
+    title: 'Kairos',
+    intro: 'There is no correct bedtime — Kairos measures you only against the one you set.',
+    saving: s.saving,
+    children: [
       Row({
         label: 'Bedtime you are aiming for',
         hint: noTarget
@@ -673,19 +705,6 @@ function KairosSettings({ ctx }) {
       }),
 
       Row({
-        label: 'Where nudges arrive',
-        hint: DELIVERY_COPY[deliveryValue(g.nudge_delivery)] || '',
-        children: jsx('select', {
-          value: deliveryValue(g.nudge_delivery),
-          onChange: e => void save({ nudge_delivery: e.target.value }),
-          style: { ...inputStyle, width: '180px' },
-          children: ['inject', 'both'].map(t =>
-            jsx('option', { value: t, children: t }, t)
-          )
-        })
-      }),
-
-      Row({
         label: 'Show Kairos in the sidebar',
         hint:
           'Off by default — a permanent row for something you open now and then is clutter. However this is set, the page stays reachable from ⌘K (“Open Kairos”) and as a pane.',
@@ -705,23 +724,34 @@ function KairosSettings({ ctx }) {
             'keep a sidebar link'
           ]
         })
-      }),
+      })
+    ]
+  })
+}
+
+function KairosNudges({ ctx }) {
+  const s = useGoals(ctx)
+  if (!s.g) return s.fallback
+  const { g, save } = s
+
+  return Page({
+    title: 'Nudges',
+    intro: 'How and when the bedtime wind-down reaches you.',
+    saving: s.saving,
+    children: [
       Row({
-        label: 'Ping me when I\'m not in Hermes',
-        hint:
-          'The in-chat nudge only reaches you mid-conversation. With a cron job calling kairos_ping, a bedtime hint can also arrive while the laptop is shut — or on your phone, if you point cron at a messaging channel. This switch silences it without you having to delete the job.',
-        children: jsxs('label', {
-          style: { display: 'flex', gap: '5px', alignItems: 'center', fontSize: '0.75rem' },
-          children: [
-            jsx('input', {
-              type: 'checkbox',
-              checked: g.ping_enabled === 'true',
-              onChange: e => void save({ ping_enabled: e.target.checked })
-            }),
-            'allow scheduled pings'
-          ]
+        label: 'Where nudges arrive',
+        hint: DELIVERY_COPY[deliveryValue(g.nudge_delivery)] || '',
+        children: jsx('select', {
+          value: deliveryValue(g.nudge_delivery),
+          onChange: e => void save({ nudge_delivery: e.target.value }),
+          style: { ...inputStyle, width: '180px' },
+          children: ['inject', 'both'].map(t =>
+            jsx('option', { value: t, children: t }, t)
+          )
         })
       }),
+
       Row({
         label: 'How often it may speak',
         hint:
@@ -791,9 +821,89 @@ function KairosSettings({ ctx }) {
           ]
         })
       }),
+
       Row({
-        label: 'Pomodoro',
-        hint: 'Every work block, offer a short rest — only at a clean stopping point, never mid-task.',
+        label: 'Ping me when I\'m not in Hermes',
+        hint:
+          'The in-chat nudge only reaches you mid-conversation. With a cron job calling kairos_ping, a bedtime hint can also arrive while the laptop is shut — or on your phone, if you point cron at a messaging channel. This switch silences it without you having to delete the job.',
+        children: jsxs('label', {
+          style: { display: 'flex', gap: '5px', alignItems: 'center', fontSize: '0.75rem' },
+          children: [
+            jsx('input', {
+              type: 'checkbox',
+              checked: g.ping_enabled === 'true',
+              onChange: e => void save({ ping_enabled: e.target.checked })
+            }),
+            'allow scheduled pings'
+          ]
+        })
+      })
+    ]
+  })
+}
+
+// Live clock for the Pomodoro settings page, refreshed every half minute.
+function usePomodoro(ctx) {
+  const [pom, setPom] = useState(null)
+  useEffect(() => {
+    let alive = true
+    const read = async () => {
+      try {
+        const p = await ctx.rest('/pomodoro')
+        if (alive) setPom(p && p.success ? p.pomodoro : null)
+      } catch (e) {
+        if (alive) setPom(null)
+      }
+    }
+    void read()
+    const stop = ctx.setInterval(read, 30000)
+    return () => { alive = false; stop() }
+  }, [ctx])
+  return pom
+}
+
+function PomodoroReadout(pom, g) {
+  const shared = jsxs('div', {
+    style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary)', lineHeight: 1.5, paddingBottom: '14px' },
+    children: [
+      'Uses your tone (Off silences it; Gentle only speaks at a clean spot) and the stopping-point patience from ',
+      settingsLink('nudges', 'Nudges'),
+      '.'
+    ]
+  })
+  if (!pom || !pom.enabled || g.pomodoro_enabled !== 'true') return shared
+  return jsxs('div', {
+    children: [
+      jsx('div', {
+        title: pom.why_silent || '',
+        style: { fontSize: '0.75rem', paddingBottom: '4px' },
+        children:
+          `${pom.ring} · ${pom.stretch_min} of ${pom.block_min} min · block ${pom.block}` +
+          (pom.last_reset_reason ? ` · last reset: ${pom.last_reset_reason}` : '')
+      }),
+      jsx('div', {
+        style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary)', paddingBottom: '10px' },
+        children: pom.due ? 'Due — it will offer at your next message.' : pom.why_silent
+      }),
+      shared
+    ]
+  })
+}
+
+function KairosPomodoroSettings({ ctx }) {
+  const s = useGoals(ctx)
+  const pom = usePomodoro(ctx)
+  if (!s.g) return s.fallback
+  const { g, save } = s
+
+  return Page({
+    title: 'Pomodoro',
+    intro: 'A short rest offered once per work block, and only when the work is at a clean spot. Off until you switch it on.',
+    saving: s.saving,
+    children: [
+      Row({
+        label: 'Rhythm',
+        hint: 'Hover a number for what it does.',
         children: jsxs('div', {
           style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
           children: [
@@ -842,6 +952,21 @@ function KairosSettings({ ctx }) {
           ]
         })
       }),
+      PomodoroReadout(pom, g)
+    ]
+  })
+}
+
+function KairosSchedule({ ctx }) {
+  const s = useGoals(ctx, { commitments: true })
+  if (!s.g) return s.fallback
+  const { g, save } = s
+  const commits = s.commits
+  return Page({
+    title: 'Schedule',
+    intro: 'Changes to your target that happen over days, and the morning question.',
+    saving: s.saving,
+    children: [
       Row({
         label: 'Gradually shift to a different bedtime',
         hint:
@@ -955,14 +1080,7 @@ function KairosSettings({ ctx }) {
                 children: 'None upcoming.'
               })
         })
-      }),
-
-      saving
-        ? jsx('div', {
-            style: { fontSize: '0.625rem', color: 'var(--ui-text-tertiary)' },
-            children: 'saving…'
-          })
-        : null
+      })
     ]
   })
 }
@@ -1041,7 +1159,12 @@ export default {
       id: 'kairos',
       title: 'Kairos',
       icon: 'pulse',
-      render: () => jsx(KairosSettings, { ctx })
+      render: () => jsx(KairosSettings, { ctx }),
+      children: [
+        { id: 'nudges', title: 'Nudges', render: () => jsx(KairosNudges, { ctx }) },
+        { id: 'pomodoro', title: 'Pomodoro', render: () => jsx(KairosPomodoroSettings, { ctx }) },
+        { id: 'schedule', title: 'Schedule', render: () => jsx(KairosSchedule, { ctx }) }
+      ]
     })
   }
 }
