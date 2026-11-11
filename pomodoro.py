@@ -250,7 +250,8 @@ def should_suggest_pomodoro(
     if snoozed:
         return quiet("Snoozed for tonight ('not tonight').")
     if state.get("paused"):
-        return quiet("Paused ('not today') until you've been away a while.")
+        return quiet(f"Paused ('not today') until you've been away "
+                     f"{PAUSE_LIFTS_AFTER_H} hours.")
     if bedtime_delta is not None and (
         -_moments.BEDTIME_PRIORITY_MIN <= bedtime_delta <= _winddown.PAST_LIMIT_MIN
     ):
@@ -259,7 +260,7 @@ def should_suggest_pomodoro(
     mins = stretch_min(state, now)
     work = cfg["work_min"]
     if mins < work:
-        return quiet(f"{mins} of {work} min into this block.")
+        return quiet(f"{mins} of {work} min into this block.", not_due=True)
 
     ignored = int(state.get("ignored_streak") or 0)
     if ignored >= MAX_IGNORED:
@@ -522,10 +523,14 @@ def status(now: float, recent: list[dict[str, Any]]) -> dict[str, Any]:
         "away_min": cfg["away_min"],
         "stretch_min": stretch_min(state, now),
         "block": f"{block} of {BLOCKS_PER_CYCLE}",
-        "ring": _ring(block - 1),
+        "ring": _ring(block),  # same ring the offer for this block would show
         "due": bool(res["speak"]),
         "at_boundary": b["at_boundary"],
         "why_silent": "" if res["speak"] else res["why"],
+        # For the readout under the clock: blank when it would only repeat
+        # the minutes the clock line already shows.
+        "note": ("Due — it will offer at your next message." if res["speak"]
+                 else "" if res.get("not_due") else res["why"]),
         "ignored_streak": int(state.get("ignored_streak") or 0),
         "paused": bool(state.get("paused")),
         "last_reset_reason": state.get("last_reset_reason") or "",

@@ -186,3 +186,23 @@ def test_status_is_read_only_and_explains():
     for key in ("at_boundary", "ignored_streak", "last_reset_reason",
                 "offers_today", "resets_today"):
         assert key in st
+
+
+def test_status_ring_matches_the_offer():
+    # The offer for block 1 reads ●○○○; the readout in block 1 must too.
+    _enable()
+    pomodoro.on_user_turn(T0, recent=[])
+    assert pomodoro.status(T0 + 10 * MIN, recent=[])["ring"] == "\u25cf\u25cb\u25cb\u25cb"
+
+
+def test_status_note_is_empty_when_it_would_repeat_the_clock():
+    _enable()
+    pomodoro.on_user_turn(T0, recent=[])
+    assert pomodoro.status(T0 + 10 * MIN, recent=[])["note"] == ""
+
+
+def test_status_note_explains_quiet_that_the_clock_does_not():
+    _enable()
+    pomodoro.on_user_turn(T0, recent=[])
+    pomodoro.skip(T0 + MIN, scope="today")
+    assert "not today" in pomodoro.status(T0 + 10 * MIN, recent=[])["note"]

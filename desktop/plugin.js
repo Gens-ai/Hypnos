@@ -932,10 +932,12 @@ function PomodoroReadout(pom, g) {
           `${pom.ring} · ${pom.stretch_min} of ${pom.block_min} min · block ${pom.block}` +
           (pom.last_reset_reason ? ` · last reset: ${pom.last_reset_reason}` : '')
       }),
-      jsx('div', {
-        style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary)', paddingBottom: '10px' },
-        children: pom.due ? 'Due — it will offer at your next message.' : pom.why_silent
-      }),
+      pom.note
+        ? jsx('div', {
+            style: { fontSize: '0.6875rem', color: 'var(--ui-text-tertiary)', paddingBottom: '10px' },
+            children: pom.note
+          })
+        : jsx('div', { style: { paddingBottom: '10px' } }),
       shared
     ]
   })
