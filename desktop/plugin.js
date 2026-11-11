@@ -661,11 +661,11 @@ function Page({ id, title, intro, saving, children }) {
   return jsxs('div', {
     style: { padding: '18px', maxWidth: '620px', display: 'flex', flexDirection: 'column' },
     children: [
-      SettingsTabs(id),
-      jsx('div', {
-        style: { fontSize: '0.8125rem', fontWeight: 600, paddingBottom: '4px' },
-        children: title
-      }),
+      SettingsTabs(id) ||
+        jsx('div', {
+          style: { fontSize: '0.8125rem', fontWeight: 600, paddingBottom: '4px' },
+          children: title
+        }),
       jsx('div', {
         style: {
           fontSize: '0.6875rem',
